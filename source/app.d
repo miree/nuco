@@ -454,9 +454,10 @@ void main(string[] args)
 		
 	writeln("-------------------------approximative results----------------------");
 	{
-		real modified_impact_parameter = params.bp + (PI/2) * params.Zt*params.Zp*ahc / (params.Ap*u*params.betap^^2*gamma(params.betap));
+		real mu = u * params.Ap*params.At/(params.Ap+params.At);
+		real modified_impact_parameter = params.bp + (PI/2) * 2*params.Zt*params.Zp*ahc / (mu*params.betap^^2*gamma(params.betap));
 		writeln("impact parameter: ", params.bp, "   modified impact parameter: ", modified_impact_parameter);
-		real theta_straight_line = 2*params.Zt*params.Zp*ahc/(modified_impact_parameter*params.Ep*params.Ap);
+		real theta_straight_line = 2*params.Zt*params.Zp*ahc/(params.Ap*u * params.betap^^2 * gamma(params.betap) * modified_impact_parameter);
 		
 		//real theta_straight_line = 2*params.Zt*params.Zp*ahc/(params.bp*params.Ep*params.Ap);
 		writeln("theta straight-line approximation (compare with theta in labframe with lab velocity) = ", theta_straight_line);
@@ -503,8 +504,6 @@ void main(string[] args)
 		theta_file.writef("%20.20f \t ", t);
 	}
 	theta_file.writeln();
-	
-	
 //	writeln("multipoles at 1st");
 //	auto multipole_file = File("multipole_at_1.dat", "w+");
 //	for (double t = -0.5; t <= 0.5; t += 0.0002)
