@@ -258,7 +258,9 @@ void main(string[] args)
 				real q = params.Zt; // this is the field on the position of the projectile (caused by the target charge)
 				real g = gamma(params.betap);
 				real v = params.betap*c;
-				real b = params.bp;
+				real mu = u * params.Ap*params.At/(params.Ap+params.At);
+				real b = params.bp + (PI/2) * params.Zt*params.Zp*ahc / (mu*params.betap^^2*gamma(params.betap));
+				//real b = params.bp;
 				real Ex =  q*g*v*tau  /(b^^2+(g*v*tau)^^2)^^(3./2.);
 				real Ey =  q*g*b      /(b^^2+(g*v*tau)^^2)^^(3./2.);
 				real B  = -q*g*b*(v/c)/(b^^2+(g*v*tau)^^2)^^(3./2.);
@@ -455,7 +457,7 @@ void main(string[] args)
 	writeln("-------------------------approximative results----------------------");
 	{
 		real mu = u * params.Ap*params.At/(params.Ap+params.At);
-		real modified_impact_parameter = params.bp + (PI/2) * 2*params.Zt*params.Zp*ahc / (mu*params.betap^^2*gamma(params.betap));
+		real modified_impact_parameter = params.bp + (PI/2) * params.Zt*params.Zp*ahc / (mu*params.betap^^2*gamma(params.betap));
 		writeln("impact parameter: ", params.bp, "   modified impact parameter: ", modified_impact_parameter);
 		real theta_straight_line = 2*params.Zt*params.Zp*ahc/(params.Ap*u * params.betap^^2 * gamma(params.betap) * modified_impact_parameter);
 		
