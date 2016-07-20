@@ -1,9 +1,0 @@
-{
-	"name": "relativisticdynamics2",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2015, michael",
-	"authors": ["michael"],
-	"dependencies": {
-		"nucd": ">=0.0.0",
-	}
-}
