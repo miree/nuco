@@ -1,0 +1,35 @@
+parameter summary:
+   Ap    = 85 
+   Zp    = 35 
+   bp    = 10 fm
+   betap = 0.145362 
+   Ep    = 10 MeV/u
+   At    = 197 
+   Zt    = 79 
+calculation is done in laboratory system
+distance of closest approach: d_min=13.9122 fm    at   t_min=1.05638 zs
+-------------------------lab system--------------------------------
+beta_proj_in   = 0.145362 0   0.145362
+beta_proj_out  = 0.124839 0.0613174   0.139085
+E_proj_in      = 10 MeV/u
+E_proj_out     = 9.14259 MeV/u
+theta_proj_out (relative velocity) = 0.649893
+theta_proj_out (lab velocity)      = 0.456559
+beta_targ_in   = 0 0   0
+beta_targ_out  = 0.0089959 -0.0267058   0.0281802
+E_targ_in      = 0 MeV/u
+E_targ_out     = 0.370082 MeV/u
+-------------------------CM system--------------------------------
+beta_proj_in   = 0.101873 0   0.101873
+beta_proj_out  = 0.0811443 0.0615971   0.101875
+theta_proj_out = 0.649303
+beta_targ_in   = -0.0441422 0   0.0441422
+beta_targ_out  = -0.0351603 -0.0266904   0.0441432
+-------------------------approximative results----------------------
+impact parameter: 10   modified impact parameter: 15.2944
+theta straight-line approximation (compare with theta in labframe with lab velocity) = 0.3079
+theta straight-line approximation CM (compare with theta in CM frame) = 0.436318
+theta classical (compare with theta in CM system) = 0.656674
+theta classical (compare with theta in lab system with relative velocity?) = 0.460924
+theta classical (Bertulani's modification, compare with theta in CM system) = 0.650182
+theta classical (Bertulani's modification, compare with theta in lab system relative velocity) = 0.456285

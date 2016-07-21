@@ -32,11 +32,30 @@ auto transform_potentials(Vec2 beta, Vec3 pot)
 
 real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 {
+	int n_get = 0; // count number of call to the history for profiling reasons
+
 	// get retarded times, positions and velocity of particle 1
 	real delta_t_ret_min = 1; // lower bound for t-t_ret
 	real delta_t_ret_max = 0; // upper bound for t-t_ret
+
+	// look for the retarded time in the proximity of the previously calculated value
+	if (h.last_t_ret !is real.init)
+	{
+		import std.stdio;
+		//writeln("previously calculated t_ret found");
+
+		delta_t_ret_min = t-h.last_t_ret;		
+	}
+
+
+	// get retarded times, positions and velocity of particle 1
+	// without a previous value of t_ret
+	//delta_t_ret_min = 1; // lower bound for t-t_ret
+	//delta_t_ret_max = 0; // upper bound for t-t_ret
+
 	for (;;)
 	{
+		++n_get;
 		auto x_ret = h.get(t-delta_t_ret_min).x;
 		if (c*delta_t_ret_min > (x-x_ret).length)
 			break;
@@ -47,9 +66,11 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 	real t_ret_max = t-delta_t_ret_max;
 	// Now we know that t_ret is inside the interval [t_ret_min, t_ret_max].
 	// Look for t_ret by means of bisecting that interval
+
 	while (t_ret_max-t_ret_min > eps)
 	{
 		real t_ret_med = 0.5*(t_ret_min+t_ret_max);
+		++n_get;
 		auto x_ret = h.get(t_ret_med).x;
 		if (c*(t-t_ret_med) < (x-x_ret).length)
 		{
@@ -60,7 +81,13 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 			t_ret_min = t_ret_med;
 		}
 	}
-	return 0.5*(t_ret_min+t_ret_max);	
+	h.last_t_ret = 0.5*(t_ret_min+t_ret_max);	
+
+
+	import std.stdio;
+	//writeln("n_get = ", n_get);
+
+	return h.last_t_ret;
 }
 
 // computes the potential 4-vector (which is a 3-vector because 

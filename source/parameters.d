@@ -79,6 +79,10 @@ struct Spline
 
 struct History
 {
+	// helper value to accelerate the lookup of retarded time
+	// (it stores the result of the last calculated retarded time)
+	real last_t_ret;
+
 	struct Point
 	{
 		real t;
@@ -114,6 +118,7 @@ struct History
 	}
 	Field[] fields;
 	
+	// add a point into the history
 	void add(real t, Vec2 x, Vec2 v, Vec2 a, 
 			 real tau, Vec2 e, real b, Vec3 pot)
 	in
@@ -138,6 +143,7 @@ struct History
 		//Bs   ~= b;
 	}
 	
+	// get interpolated values of position and field from the history
 	Point get(real t)
 	in
 	{
@@ -165,8 +171,10 @@ struct History
 		long index_low  = 0;
 		long index_high = points.length-1;
 		
+		int n_lookup = 0;
 		while(index_high - index_low > 1)
 		{
+			++n_lookup;
 			long index_mid = (index_high + index_low)/2;
 			real t_mid   = points[index_mid].t;
 			
@@ -217,6 +225,9 @@ struct History
 		real ax =              2*c0       + 6*d0*dt    + 12*e0*dt^^2 + 20*f0*dt^^3;
 		real ay =              2*c1       + 6*d1*dt    + 12*e1*dt^^2 + 20*f1*dt^^3;
 		real tau= a2 + b2*dt +   c2*dt^^2 +   d2*dt^^3 +    e2*dt^^4 +    f2*dt^^5;
+
+		//import std.stdio;
+		//writeln("n_lookup = ", n_lookup);
 
 		return Point(t,
 		             Vec2([x,y]),
