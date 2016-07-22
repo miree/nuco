@@ -15,6 +15,18 @@ struct Vector(uint dim, T = double)
 			content[] = init[];
 		}
 		
+		//this(this)
+		//{
+		//	content = content.dup;
+		//}
+		
+		this(uint dim2)(in Vector!(dim2,T) vec)
+		if (dim2 < dim)
+		{
+			content[0..dim2] = vec.content[0..dim2];
+			content[dim2..$] = 0;
+		}
+		
 		ref Vector unity(uint i)
 		{
 			assert (i < dim);
@@ -69,6 +81,16 @@ struct Vector(uint dim, T = double)
 			
 			return this; 
 		}
+		ref Vector!(dim2,T) opOpAssign(uint dim2, string op)(Vector!(dim2,T) rhs)
+		if ((dim2 < dim) && (op == "+" || op == "-")) // u+=v; u-=v; for Vectors 
+		{
+			static if (op == "+")
+				content[0..dim2] += rhs.content[];
+			else if (op == "-")
+				content[0..dim2] -= rhs.content[];
+			
+			return this; 
+		}
 		ref Vector opOpAssign(string op)(T[dim] rhs)
 		{
 			return opAssign!op(Vector!(dim,T)(rhs));
@@ -98,6 +120,14 @@ struct Vector(uint dim, T = double)
 		}
 		Vector opBinary(string op)(in Vector rhs)
 		if (op == "+" || op == "-") // u+v for Vectors
+		{
+			Vector!(dim,T) result = this;
+			result.opOpAssign!op(rhs);
+			return result;	
+		}
+		
+		Vector opBinary(uint dim2, string op)(in Vector!(dim2,T) rhs)
+		if ((dim2 < dim) && (op == "+" || op == "-")) // u+v for Vectors
 		{
 			Vector!(dim,T) result = this;
 			result.opOpAssign!op(rhs);

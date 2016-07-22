@@ -15,40 +15,6 @@ import relat_dynamics;
 import integrate;
 import parameters;
 
-// this is the same as get_retarded time in "relat_dynamics" but with a 3D test point
-real get_retarded_time_3D(ref History h, double x, double y, double z, real t, real eps = 5e-8)
-{
-	// get retarded times, positions and velocity of particle 1
-	real delta_t_ret_min = 1; // lower bound for t-t_ret
-	real delta_t_ret_max = 0; // upper bound for t-t_ret
-	for (;;)
-	{
-		auto x_ret = h.get(t-delta_t_ret_min).x;
-		if (c*delta_t_ret_min > sqrt((x-x_ret[0])^^2 + (y-x_ret[1])^^2 + z^^2))
-			break;
-		delta_t_ret_max = delta_t_ret_min;
-		delta_t_ret_min *= 2.;
-	}
-	real t_ret_min = t-delta_t_ret_min;
-	real t_ret_max = t-delta_t_ret_max;
-	// Now we know that t_ret is inside the interval [t_ret_min, t_ret_max].
-	// Look for t_ret by means of bisecting that interval
-	while (t_ret_max-t_ret_min > eps)
-	{
-		real t_ret_med = 0.5*(t_ret_min+t_ret_max);
-		auto x_ret = h.get(t_ret_med).x;
-		if (c*(t-t_ret_med) < sqrt((x-x_ret[0])^^2 + (y-x_ret[1])^^2 + z^^2))
-		{
-			t_ret_max = t_ret_med;
-		}
-		else
-		{
-			t_ret_min = t_ret_med;
-		}
-	}
-	return 0.5*(t_ret_min+t_ret_max);	
-}
-
 /// returns b2 as seen from an observer moved with b1. 
 /// Arguments are in units of c
 Vec2 velocity_addition(Vec2 b1, Vec2 b2)
@@ -506,6 +472,8 @@ void main(string[] args)
 		theta_file.writef("%20.20f \t ", t);
 	}
 	theta_file.writeln();
+
+
 //	writeln("multipoles at 1st");
 //	auto multipole_file = File("multipole_at_1.dat", "w+");
 //	for (double t = -0.5; t <= 0.5; t += 0.0002)
@@ -525,7 +493,7 @@ void main(string[] args)
 //			auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
 //			//multipole_file.writeln(dr[0]," ", dr[1]);
 //			auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
-//			auto t_ret = get_retarded_time_3D(params.h2, center3D[0], center3D[1], center3D[2], t);
+//			auto t_ret = get_retarded_time(params.h2, center3D, t);
 //			auto point_ret = params.h2.get(t_ret);
 //			auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
 //			auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
@@ -583,4 +551,6 @@ void main(string[] args)
 //		multipole_file2.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length);
 //	}
 
+	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss);
+	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss);
 }

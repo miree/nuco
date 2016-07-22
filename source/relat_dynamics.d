@@ -30,7 +30,7 @@ auto transform_potentials(Vec2 beta, Vec3 pot)
 	return boost*pot;
 }
 
-real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
+real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5e-8)
 {
 	int n_get = 0; // count number of call to the history for profiling reasons
 
@@ -52,8 +52,8 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 		real delta_t1 = t-h.last_t_ret;
 		++n_get;
 		auto last_point = h.get(t-delta_t1);
-		auto x_ret = last_point.x;
-		auto v_ret = last_point.v;
+		VecDim x_ret = last_point.x;
+		VecDim v_ret = last_point.v;
     
 		real Z1 = c*delta_t1 - (x-x_ret).length;
 		real dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
@@ -62,10 +62,10 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 		real delta_t2 = delta_t1 - 2*Z1/dZdt;
 		++n_get;
 		last_point = h.get(t-delta_t2);
-		x_ret = last_point.x;
-		v_ret = last_point.v;
-    
-		real Z2 = c*delta_t2 - (x-x_ret).length;
+		VecDim x_ret2 = last_point.x;
+		//v_ret = last_point.v;
+
+		real Z2 = c*delta_t2 - (x-x_ret2).length;
 		//dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
 		//writeln("2: Z=",Z2, "   dZdt=",dZdt,"      delta_t=", delta_t2, "       Z/dZdt=",Z2/dZdt);
 		//writeln("----------------------------");
@@ -100,7 +100,7 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 		for (;;)
 		{
 			++n_get;
-			auto x_ret = h.get(t-delta_t_ret_min).x;
+			VecDim x_ret = h.get(t-delta_t_ret_min).x;
 			if (c*delta_t_ret_min > (x-x_ret).length)
 				break;
 			delta_t_ret_max = delta_t_ret_min;
@@ -116,7 +116,7 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 	{
 		real t_ret_med = 0.5*(t_ret_min+t_ret_max);
 		++n_get;
-		auto x_ret = h.get(t_ret_med).x;
+		VecDim x_ret = h.get(t_ret_med).x;
 		if (c*(t-t_ret_med) < (x-x_ret).length)
 		{
 			t_ret_max = t_ret_med;
