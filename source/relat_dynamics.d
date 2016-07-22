@@ -34,36 +34,81 @@ real get_retarded_time(ref History h, ref Vec2 x, real t, real eps = 5e-8)
 {
 	int n_get = 0; // count number of call to the history for profiling reasons
 
-	// get retarded times, positions and velocity of particle 1
-	real delta_t_ret_min = 1; // lower bound for t-t_ret
-	real delta_t_ret_max = 0; // upper bound for t-t_ret
+	
+	real t_ret_min;
+	real t_ret_max;
+	bool interval_found = false;
 
 	// look for the retarded time in the proximity of the previously calculated value
+	// This function uses a strategy similar to Newton's method for root-finding.
+	//   with this section present, there are only 71% of 
+	//   the calls to the History lookup function h.get()
+	//
 	if (h.last_t_ret !is real.init)
 	{
 		import std.stdio;
 		//writeln("previously calculated t_ret found");
-
-		delta_t_ret_min = t-h.last_t_ret;		
-	}
-
-
-	// get retarded times, positions and velocity of particle 1
-	// without a previous value of t_ret
-	//delta_t_ret_min = 1; // lower bound for t-t_ret
-	//delta_t_ret_max = 0; // upper bound for t-t_ret
-
-	for (;;)
-	{
+		
+		real delta_t1 = t-h.last_t_ret;
 		++n_get;
-		auto x_ret = h.get(t-delta_t_ret_min).x;
-		if (c*delta_t_ret_min > (x-x_ret).length)
-			break;
-		delta_t_ret_max = delta_t_ret_min;
-		delta_t_ret_min *= 2.;
+		auto last_point = h.get(t-delta_t1);
+		auto x_ret = last_point.x;
+		auto v_ret = last_point.v;
+    
+		real Z1 = c*delta_t1 - (x-x_ret).length;
+		real dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
+		//writeln("1: Z=",Z1, "   dZdt=",dZdt,"      delta_t=", delta_t1, "       Z/dZdt=",Z1/dZdt);
+		
+		real delta_t2 = delta_t1 - 2*Z1/dZdt;
+		++n_get;
+		last_point = h.get(t-delta_t2);
+		x_ret = last_point.x;
+		v_ret = last_point.v;
+    
+		real Z2 = c*delta_t2 - (x-x_ret).length;
+		//dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
+		//writeln("2: Z=",Z2, "   dZdt=",dZdt,"      delta_t=", delta_t2, "       Z/dZdt=",Z2/dZdt);
+		//writeln("----------------------------");
+    
+		if (Z1*Z2 < 0)
+		{
+			if (Z1 > Z2)
+			{
+				t_ret_min = t-delta_t1;
+				t_ret_max = t-delta_t2;
+			}
+			else
+			{
+				t_ret_min = t-delta_t2;
+				t_ret_max = t-delta_t1;
+			}
+			//t_ret_min = (3*t_ret_min+t_ret_max)/4;
+			//t_ret_max = (3*t_ret_max+t_ret_min)/4;
+			interval_found = true;
+			//writeln("interval found");
+		}
 	}
-	real t_ret_min = t-delta_t_ret_min;
-	real t_ret_max = t-delta_t_ret_max;
+
+
+	if (!interval_found)
+	{
+		// get retarded times, positions and velocity of particle 1
+		// without a previous value of t_ret
+		// get retarded times, positions and velocity of particle 1
+		real delta_t_ret_min = 1; // lower bound for t-t_ret
+		real delta_t_ret_max = 0; // upper bound for t-t_ret
+		for (;;)
+		{
+			++n_get;
+			auto x_ret = h.get(t-delta_t_ret_min).x;
+			if (c*delta_t_ret_min > (x-x_ret).length)
+				break;
+			delta_t_ret_max = delta_t_ret_min;
+			delta_t_ret_min *= 2.;
+		}
+		t_ret_min = t-delta_t_ret_min;
+		t_ret_max = t-delta_t_ret_max;
+	}
 	// Now we know that t_ret is inside the interval [t_ret_min, t_ret_max].
 	// Look for t_ret by means of bisecting that interval
 

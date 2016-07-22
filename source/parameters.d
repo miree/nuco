@@ -82,6 +82,10 @@ struct History
 	// helper value to accelerate the lookup of retarded time
 	// (it stores the result of the last calculated retarded time)
 	real last_t_ret;
+	
+	// helper value to remember the index of the where the last history lookup.
+	long last_index_low;
+	long last_index_high;
 
 	struct Point
 	{
@@ -166,29 +170,51 @@ struct History
 						 Vec2([0,0]));
 		}
 		
-		// find two nearest neigbors to the requested time 
-		// by means of bisection
-		long index_low  = 0;
-		long index_high = points.length-1;
 		
-		int n_lookup = 0;
-		while(index_high - index_low > 1)
+		Point pa = points[last_index_low];  // the two supporting points between which 
+		Point pb = points[last_index_high]; // we have to do a spline interpolation
+		
+		bool use_old_interval = false;
+		              
+		// see if we are still at the same point in the history table
+		// doing this takes 70% of the time if not doing it
+		if (last_index_high - last_index_low == 1)
 		{
-			++n_lookup;
-			long index_mid = (index_high + index_low)/2;
-			real t_mid   = points[index_mid].t;
-			
-			if (t_mid > t)
+			if (pa.t < t && pb.t > t)
 			{
-				index_high = index_mid;
-			}
-			else
-			{
-				index_low = index_mid;
+				use_old_interval = true;
 			}
 		}
-		auto pa = points[index_low];   
-		auto pb = points[index_high];
+		
+		if (!use_old_interval)
+		{
+			// find two nearest neigbors to the requested time 
+			// by means of bisection
+			long index_low  = 0;
+			long index_high = points.length-1;
+			
+			int n_lookup = 0;
+			while(index_high - index_low > 1)
+			{
+				++n_lookup;
+				long index_mid = (index_high + index_low)/2;
+				real t_mid   = points[index_mid].t;
+				
+				if (t_mid > t)
+				{
+					index_high = index_mid;
+				}
+				else
+				{
+					index_low = index_mid;
+				}
+			}
+			last_index_low  = index_low;
+			last_index_high = index_high;
+			
+			pa = points[index_low];   
+			pb = points[index_high];
+		}
 
 		// 5-th order spline interpolation between the two closest points pa and pb.
 		real t2 = pb.t-pa.t;
