@@ -185,8 +185,8 @@ struct History
 		}
 		
 		
-		Point pa = points[last_index_low];  // the two supporting points between which 
-		Point pb = points[last_index_high]; // we have to do a spline interpolation
+		auto pa = &points[last_index_low];  // the two supporting points between which 
+		auto pb = &points[last_index_high]; // we have to do a spline interpolation
 		
 		// see if we are still at the same point in the history table
 		// doing this takes 70% of the time than not 
@@ -217,8 +217,8 @@ struct History
 			last_index_low  = index_low;
 			last_index_high = index_high;
 			
-			pa = points[index_low];   
-			pb = points[index_high];
+			pa = &points[index_low];   
+			pb = &points[index_high];
 		}
 
 		if (!pa.coefficients_available)
