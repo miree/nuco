@@ -174,19 +174,10 @@ struct History
 		Point pa = points[last_index_low];  // the two supporting points between which 
 		Point pb = points[last_index_high]; // we have to do a spline interpolation
 		
-		bool use_old_interval = false;
-		              
 		// see if we are still at the same point in the history table
-		// doing this takes 70% of the time if not doing it
-		if (last_index_high - last_index_low == 1)
-		{
-			if (pa.t < t && pb.t > t)
-			{
-				use_old_interval = true;
-			}
-		}
-		
-		if (!use_old_interval)
+		// doing this takes 70% of the time than not 
+		//if (last_index_high - last_index_low == 1)
+		if (!(pa.t < t && pb.t > t))
 		{
 			// find two nearest neigbors to the requested time 
 			// by means of bisection
@@ -218,39 +209,47 @@ struct History
 
 		// 5-th order spline interpolation between the two closest points pa and pb.
 		real t2 = pb.t-pa.t;
+		real t2_p2 = t2*t2;
+		real t2_p3 = t2_p2*t2;
+		real t2_p4 = t2_p3*t2;
+		real t2_p5 = t2_p4*t2;
 		// coefficients for the x-coordinate
 		real a0 = pa.x[0];
 		real b0 = pa.v[0];
 		real c0 = pa.a[0]/2.;
-		real d0 =  (20*pb.x[0]-20*pa.x[0]- 8*t2*pb.v[0]-12*t2*pa.v[0]+(  pb.a[0]-3*pa.a[0])*t2^^2)/(2*t2^^3);
-		real e0 = -(30*pb.x[0]-30*pa.x[0]-14*t2*pb.v[0]-16*t2*pa.v[0]+(2*pb.a[0]-3*pa.a[0])*t2^^2)/(2*t2^^4);
-		real f0 =  (12*pb.x[0]-12*pa.x[0]- 6*t2*pb.v[0]- 6*t2*pa.v[0]+(  pb.a[0]-  pa.a[0])*t2^^2)/(2*t2^^5);
+		real d0 =  (20*pb.x[0]-20*pa.x[0]- 8*t2*pb.v[0]-12*t2*pa.v[0]+(  pb.a[0]-3*pa.a[0])*t2_p2)/(2*t2_p3);
+		real e0 = -(30*pb.x[0]-30*pa.x[0]-14*t2*pb.v[0]-16*t2*pa.v[0]+(2*pb.a[0]-3*pa.a[0])*t2_p2)/(2*t2_p4);
+		real f0 =  (12*pb.x[0]-12*pa.x[0]- 6*t2*pb.v[0]- 6*t2*pa.v[0]+(  pb.a[0]-  pa.a[0])*t2_p2)/(2*t2_p5);
 
 		// coefficients for the y-coordinate
 		real a1 = pa.x[1];
 		real b1 = pa.v[1];
 		real c1 = pa.a[1]/2.;
-		real d1 =  (20*pb.x[1]-20*pa.x[1]- 8*t2*pb.v[1]-12*t2*pa.v[1]+(  pb.a[1]-3*pa.a[1])*t2^^2)/(2*t2^^3);
-		real e1 = -(30*pb.x[1]-30*pa.x[1]-14*t2*pb.v[1]-16*t2*pa.v[1]+(2*pb.a[1]-3*pa.a[1])*t2^^2)/(2*t2^^4);
-		real f1 =  (12*pb.x[1]-12*pa.x[1]- 6*t2*pb.v[1]- 6*t2*pa.v[1]+(  pb.a[1]-  pa.a[1])*t2^^2)/(2*t2^^5);
+		real d1 =  (20*pb.x[1]-20*pa.x[1]- 8*t2*pb.v[1]-12*t2*pa.v[1]+(  pb.a[1]-3*pa.a[1])*t2_p2)/(2*t2_p3);
+		real e1 = -(30*pb.x[1]-30*pa.x[1]-14*t2*pb.v[1]-16*t2*pa.v[1]+(2*pb.a[1]-3*pa.a[1])*t2_p2)/(2*t2_p4);
+		real f1 =  (12*pb.x[1]-12*pa.x[1]- 6*t2*pb.v[1]- 6*t2*pa.v[1]+(  pb.a[1]-  pa.a[1])*t2_p2)/(2*t2_p5);
 		
 		// coefficients for tau
 		real a2 = pa.tau;
 		real b2 = pa.dtaudt;
 		real c2 = pa.d2taudt2/2.;
-		real d2 =  (20*pb.tau-20*pa.tau- 8*t2*pb.dtaudt-12*t2*pa.dtaudt+(  pb.d2taudt2-3*pa.d2taudt2)*t2^^2)/(2*t2^^3);
-		real e2 = -(30*pb.tau-30*pa.tau-14*t2*pb.dtaudt-16*t2*pa.dtaudt+(2*pb.d2taudt2-3*pa.d2taudt2)*t2^^2)/(2*t2^^4);
-		real f2 =  (12*pb.tau-12*pa.tau- 6*t2*pb.dtaudt- 6*t2*pa.dtaudt+(  pb.d2taudt2-  pa.d2taudt2)*t2^^2)/(2*t2^^5);
+		real d2 =  (20*pb.tau-20*pa.tau- 8*t2*pb.dtaudt-12*t2*pa.dtaudt+(  pb.d2taudt2-3*pa.d2taudt2)*t2_p2)/(2*t2_p3);
+		real e2 = -(30*pb.tau-30*pa.tau-14*t2*pb.dtaudt-16*t2*pa.dtaudt+(2*pb.d2taudt2-3*pa.d2taudt2)*t2_p2)/(2*t2_p4);
+		real f2 =  (12*pb.tau-12*pa.tau- 6*t2*pb.dtaudt- 6*t2*pa.dtaudt+(  pb.d2taudt2-  pa.d2taudt2)*t2_p2)/(2*t2_p5);
 		
 		// calculate x and y results
 		real dt = t-pa.t;
-		real x  = a0 + b0*dt +   c0*dt^^2 +   d0*dt^^3 +    e0*dt^^4 +    f0*dt^^5;
-		real y  = a1 + b1*dt +   c1*dt^^2 +   d1*dt^^3 +    e1*dt^^4 +    f1*dt^^5;
-		real vx =      b0    + 2*c0*dt    + 3*d0*dt^^2 +  4*e0*dt^^3 +  5*f0*dt^^4;
-		real vy =      b1    + 2*c1*dt    + 3*d1*dt^^2 +  4*e1*dt^^3 +  5*f1*dt^^4;
-		real ax =              2*c0       + 6*d0*dt    + 12*e0*dt^^2 + 20*f0*dt^^3;
-		real ay =              2*c1       + 6*d1*dt    + 12*e1*dt^^2 + 20*f1*dt^^3;
-		real tau= a2 + b2*dt +   c2*dt^^2 +   d2*dt^^3 +    e2*dt^^4 +    f2*dt^^5;
+		real dt_p2 = dt*dt;
+		real dt_p3 = dt_p2*dt;
+		real dt_p4 = dt_p3*dt;
+		real dt_p5 = dt_p4*dt;
+		real x  = a0 + b0*dt +   c0*dt_p2 +   d0*dt_p3 +    e0*dt_p4 +    f0*dt_p5;
+		real y  = a1 + b1*dt +   c1*dt_p2 +   d1*dt_p3 +    e1*dt_p4 +    f1*dt_p5;
+		real vx =      b0    + 2*c0*dt    + 3*d0*dt_p2 +  4*e0*dt_p3 +  5*f0*dt_p4;
+		real vy =      b1    + 2*c1*dt    + 3*d1*dt_p2 +  4*e1*dt_p3 +  5*f1*dt_p4;
+		real ax =              2*c0       + 6*d0*dt    + 12*e0*dt_p2 + 20*f0*dt_p3;
+		real ay =              2*c1       + 6*d1*dt    + 12*e1*dt_p2 + 20*f1*dt_p3;
+		real tau= a2 + b2*dt +   c2*dt_p2 +   d2*dt_p3 +    e2*dt_p4 +    f2*dt_p5;
 
 		//import std.stdio;
 		//writeln("n_lookup = ", n_lookup);
