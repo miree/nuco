@@ -214,6 +214,7 @@ struct History
 					index_low = index_mid;
 				}
 			}
+			// remember the indices for the next time
 			last_index_low  = index_low;
 			last_index_high = index_high;
 			
