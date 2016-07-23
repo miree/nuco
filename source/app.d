@@ -1,3 +1,25 @@
+/* 
+ * Copyright (C) 2015,2016 Michael reese
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
+
+/*
+ * Author:  M. Reese
+ */
+
 import std.stdio;
 import nucd.geometry;
 import nucd.kinematics;
@@ -155,35 +177,7 @@ void main(string[] args)
 		break;
 	}
 
-	// calculate distance of closest approach
-	real t0 = 0;
-	real dt = 100;
-	real dmin;
-	do
-	{
-		real ti = t0+dt; // test time
-		auto x1  = params.h1.get(t0).x;
-		auto x2  = params.h2.get(t0).x;
-		auto x1i = params.h1.get(ti).x;
-		auto x2i = params.h2.get(ti).x;
-
-		auto d  = (x2 - x1).length;
-		auto di = (x2i-x1i).length;
-		dmin = d;
-		//writeln("distance ", d, " ", di, " ", dt);
-
-		if (di < d)
-		{
-			t0 = ti;
-		}
-		else 
-		{
-			dt /= -2;
-		}
-	}
-	while (dt*dt > 1e-12);
-	//writeln("hallo");
-	writeln("distance of closest approach: d_min=" , dmin , " fm    at   t_min=", t0 , " zs");
+	writeln("distance of closest approach: d_min=" , params.dmin , " fm    at   t_min=", params.t0 , " zs");
 	
 	if (params.compare_SL_field)
 	{
@@ -287,8 +281,8 @@ void main(string[] args)
 			real yy = a * sqrt(e^^2-1)*sinh(w);
 			real tt = a * (e * sinh(w) + w) / params.betap / c;
 			
-			auto pp1 = params.h1.get(tt+t0).x;
-			auto pp2 = params.h2.get(tt+t0).x;
+			auto pp1 = params.h1.get(tt+params.t0).x;
+			auto pp2 = params.h2.get(tt+params.t0).x;
 			auto p1 = rot*pp1;
 			auto p2 = rot*pp2;
 
@@ -448,11 +442,11 @@ void main(string[] args)
 		theta[6] = theta_lab;
 		writeln("theta classical (compare with theta in lab system with relative velocity?) = ", theta_lab);
 	}
-	{
+	{ 
 		real mu = u * params.Ap*params.At/(params.Ap+params.At);
 		real a  = params.Zp*params.Zt*ahc/mu/params.betap^^2/gamma(params.betap);
 		real theta_half = atan2(a,cast(real)params.bp);
-		writeln("theta classical (Bertulani's modification, compare with theta in CM system) = ", theta_half*2);
+		writeln("theta classical (infinite mass limit, compare with theta in CM system) = ", theta_half*2);
 		theta[7] = theta_half*2;
 
 		auto beta_CM = Vec2([-params.beta_CM, 0]);
@@ -460,7 +454,7 @@ void main(string[] args)
 		auto v_lab = velocity_addition(beta_CM, v);
 		auto theta_lab = atan2(v_lab[1],v_lab[0]);
 		theta[8] = theta_lab;
-		writeln("theta classical (Bertulani's modification, compare with theta in lab system relative velocity) = ", theta_lab);
+		writeln("theta classical (infinite mass limit, compare with theta in lab system relative velocity) = ", theta_lab);
 	}
 
 
@@ -474,43 +468,43 @@ void main(string[] args)
 	theta_file.writeln();
 
 
-//	writeln("multipoles at 1st");
-//	auto multipole_file = File("multipole_at_1.dat", "w+");
-//	for (double t = -0.5; t <= 0.5; t += 0.0002)
-//	{
-//		//writeln("multipole moment calculation at t = ", t);
-//		auto center = params.h1.get(t);  // the position of particle 1 at time t;
-//		//writeln(center.v);
-//		import lebedev_quadrature;
-//		Vec3 pot;
-//		import std.complex;
-//		Complex!double[int] mE1;
-//		foreach(m;-1..2) mE1[m] = complex(0,0);
-//		//auto lq = LQ(0,0,0,0,0,1);
-//		foreach(lq;lq0110)
-//		{
-//			real r = 1;
-//			auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
-//			//multipole_file.writeln(dr[0]," ", dr[1]);
-//			auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
-//			auto t_ret = get_retarded_time(params.h2, center3D, t);
-//			auto point_ret = params.h2.get(t_ret);
-//			auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
-//			auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
-//			pot = transform_potentials(center.v/c, 
-//						potential3D(center3D - retx3D, retv3D/c, params.Zt));
-//			foreach(m;-1..2)
-//			{
-//				import nucd.em;
-//				mE1[m] += pot[0] * lq.w ;//* Ylm(1, m, lq.theta, lq.phi);
-//			}	
-//		}
-//		auto t_ret = get_retarded_time(params.h2, center.x, t);
-//		auto point_ret = params.h2.get(t_ret);
-//		pot = transform_potentials(center.v/c, 
-//						potential(center.x - point_ret.x, point_ret.v/c, params.Zp));
-//		multipole_file.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length );
-//	}
+	//writeln("multipoles at 1st");
+	//auto multipole_file = File("multipole_at_1.dat", "w+");
+	//for (double t = -0.5; t <= 0.5; t += 0.0002)
+	//{
+	//	//writeln("multipole moment calculation at t = ", t);
+	//	auto center = params.h1.get(t);  // the position of particle 1 at time t;
+	//	//writeln(center.v);
+	//	import lebedev_quadrature;
+	//	Vec3 pot;
+	//	import std.complex;
+	//	Complex!double[int] mE1;
+	//	foreach(m;-1..2) mE1[m] = complex(0,0);
+	//	//auto lq = LQ(0,0,0,0,0,1);
+	//	foreach(lq;lq0110)
+	//	{
+	//		real r = 1;
+	//		auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
+	//		//multipole_file.writeln(dr[0]," ", dr[1]);
+	//		auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
+	//		auto t_ret = get_retarded_time(params.h2, center3D, t);
+	//		auto point_ret = params.h2.get(t_ret);
+	//		auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
+	//		auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
+	//		pot = transform_potentials(center.v/c, 
+	//					potential3D(center3D - retx3D, retv3D/c, params.Zt));
+	//		foreach(m;-1..2)
+	//		{
+	//			import nucd.em;
+	//			mE1[m] += pot[0] * lq.w ;//* Ylm(1, m, lq.theta, lq.phi);
+	//		}	
+	//	}
+	//	auto t_ret = get_retarded_time(params.h2, center.x, t);
+	//	auto point_ret = params.h2.get(t_ret);
+	//	pot = transform_potentials(center.v/c, 
+	//					potential(center.x - point_ret.x, point_ret.v/c, params.Zp));
+	//	multipole_file.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length );
+	//}
 //
 //	writeln("multipoles at 2nd");
 //	auto multipole_file2 = File("multipole_at_2.dat", "w+");
@@ -551,6 +545,6 @@ void main(string[] args)
 //		multipole_file2.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length);
 //	}
 
-	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss);
-	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss);
+//	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss);
+//	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss);
 }

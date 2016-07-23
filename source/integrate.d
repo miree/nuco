@@ -1,4 +1,25 @@
+/* 
+ * Copyright (C) 2015,2016 Michael reese
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
 
+/*
+ * Author:  M. Reese
+ */
+ 
 import parameters;
 import types;
 import nucd.kinematics;
@@ -93,6 +114,42 @@ void integrate(ode, type)(ode func,
 	gsl_odeiv2_evolve_free(evolve);
 	gsl_odeiv2_control_free(control);
 	gsl_odeiv2_step_free(step);
+
+	// do some post-processing
+
+  // search distance of closest approach
+	real t0 = 0;
+	real dt = 100;
+	real dmin;
+	do
+	{
+		real ti = t0+dt; // test time
+		auto x1  = params.h1.get(t0).x;
+		auto x2  = params.h2.get(t0).x;
+		auto x1i = params.h1.get(ti).x;
+		auto x2i = params.h2.get(ti).x;
+
+		auto d  = (x2 - x1).length;
+		auto di = (x2i-x1i).length;
+		dmin = d;
+		//writeln("distance ", d, " ", di, " ", dt);
+
+		if (di < d)
+		{
+			t0 = ti;
+		}
+		else 
+		{
+			dt /= -2;
+		}
+	}
+	while (dt*dt > 1e-16);
+	params.t0 = t0;
+	params.dmin = dmin;
+	params.p1_tau0 = params.h1.get(t0).tau;
+	params.p2_tau0 = params.h2.get(t0).tau;
+
+
 }
 
 
