@@ -28,8 +28,8 @@ import std.conv;
 import std.stdio;
 
 void integrate(ode, type)(ode func, 
-						  type T, 
-						  ref Parameters params)
+							type T, 
+							ref Parameters params)
 {
 	// setup the system
 	auto system = gsl_odeiv2_system(func,   null, 10, cast(void*)&params);
@@ -59,15 +59,15 @@ void integrate(ode, type)(ode func,
 	}
 	
 	
-	double[10] y = [ t1*beta1*c, params.bp/2,  //  x1,y1
-		             t1*beta2*c,-params.bp/2,  //  x2,y2
-	                 
-		               beta1*c,       0.0*c,  // vx1,vy1
-	                   beta2*c,       0.0*c,  // vx2,vy2
-	                   
-	                 t1/gamma(beta1),         // proper time tau1
-	                 t1/gamma(beta2),         // proper time tau2
-		            ];
+	double[10] y = [t1*beta1*c, params.bp/2,  //  x1,y1
+									t1*beta2*c,-params.bp/2,  //  x2,y2
+									
+									beta1*c,          0.0*c,  // vx1,vy1
+									beta2*c,          0.0*c,  // vx2,vy2
+									 
+									t1/gamma(beta1),          // proper time tau1
+									t1/gamma(beta2),          // proper time tau2
+								];
 	
 	//auto stepout  = File( "steps.dat", "w+");
 	real angle;
@@ -76,7 +76,7 @@ void integrate(ode, type)(ode func,
 	double t = t1;
 	double h = 2; // [zs] (zeptoseconds)
 	while (t < t2)
-    {
+	{
 		int status = gsl_odeiv2_evolve_apply(evolve, control, step,
 											 &system, 
 											 &t, t2,
@@ -114,7 +114,7 @@ void integrate(ode, type)(ode func,
 
 	// do some post-processing
 
-  // search distance of closest approach
+	// search distance of closest approach
 	real t0 = 0;
 	real dt = 100;
 	real dmin;

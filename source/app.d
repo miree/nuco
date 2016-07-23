@@ -190,29 +190,11 @@ void main(string[] args)
 				taus ~= params.h1.fields[i].tau;
 				Bs   ~= params.h1.fields[i].B;
 			}
-			auto spl = Spline(taus, Bs);
-			double tau0 = 0;
-			double dtau = 100;
-			do
-			{
-				auto taui = tau0+dtau;
-				auto B  = spl.get(tau0);
-				auto Bi = spl.get(taui);
-				if (Bi*Bi > B*B) // find maximum
-				{
-					tau0 = taui;
-				}
-				else
-				{
-					dtau /= -2;
-				}
-			}
-			while(dtau*dtau > 1e-12);
-			tau01 = tau0;
+			tau01 = params.p1_tau0;
 			auto compareout  = File( "field-compare1.dat", "w+");
 			foreach (field ; params.h1.fields)
 			{
-				real tau = field.tau - tau0;
+				real tau = field.tau - tau01;
 				real q = params.Zt; // this is the field on the position of the projectile (caused by the target charge)
 				real g = gamma(params.betap);
 				real v = params.betap*c;
@@ -224,38 +206,7 @@ void main(string[] args)
 				real B  = -q*g*b*(v/c)/(b^^2+(g*v*tau)^^2)^^(3./2.);
 				compareout.writefln("%.10f %.10f %.10f %.10f %.10f %.10f %.10f", tau, field.E[0], field.E[1], field.B, Ex, Ey, B);
 			}
-			
 		}
-		{
-			double[] taus;
-			double[] Bs;
-			foreach(i ; 0..params.h2.fields.length)
-			{
-				taus ~= params.h2.fields[i].tau;
-				Bs   ~= params.h2.fields[i].B;
-			}
-			auto spl = Spline(taus, Bs);
-			double tau0 = 0;
-			double dtau = 100;
-			do
-			{
-				auto taui = tau0+dtau;
-				auto B  = spl.get(tau0);
-				auto Bi = spl.get(taui);
-				if (Bi*Bi > B*B) // find maximum
-				{
-					tau0 = taui;
-				}
-				else
-				{
-					dtau /= -2;
-				}
-			}
-			while(dtau*dtau > 1e-12);
-			tau02 = tau0;
-		}
-		writeln("tau01 = ", tau01);
-		writeln("tau02 = ", tau02);
 	}
 	
 	if (params.compare_rutherford)
@@ -468,7 +419,7 @@ void main(string[] args)
 
 	//writeln("multipoles at 1st");
 	//auto multipole_file = File("multipole_at_1.dat", "w+");
-	//for (double t = -0.5; t <= 0.5; t += 0.0002)
+	//for (double t = params.t0-0.5; t <= params.t0+0.5; t += 0.002)
 	//{
 	//	//writeln("multipole moment calculation at t = ", t);
 	//	auto center = params.h1.get(t);  // the position of particle 1 at time t;

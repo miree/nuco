@@ -31,5 +31,5 @@ theta straight-line approximation (compare with theta in labframe with lab veloc
 theta straight-line approximation CM (compare with theta in CM frame) = 0.436318
 theta classical (compare with theta in CM system) = 0.656674
 theta classical (compare with theta in lab system with relative velocity?) = 0.460924
-theta classical (Bertulani's modification, compare with theta in CM system) = 0.650182
-theta classical (Bertulani's modification, compare with theta in lab system relative velocity) = 0.456285
+theta classical (infinite mass limit, compare with theta in CM system) = 0.650182
+theta classical (infinite mass limit, compare with theta in lab system relative velocity) = 0.456285
