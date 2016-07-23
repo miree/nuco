@@ -21,9 +21,7 @@ module gsl.gsl_blas;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-/*
- * Author:  G. Jungman
- */
+
 
 public import gsl.gsl_vector;
 
