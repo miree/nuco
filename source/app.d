@@ -418,9 +418,9 @@ void main(string[] args)
 
 
 	//writeln("multipoles at 1st");
-	//auto multipole_file = File("multipole_at_1.dat", "w+");
-	//for (double t = params.t0-0.5; t <= params.t0+0.5; t += 0.002)
+	//foreach(p; params.h1.points)
 	//{
+	//	double t = p.t;
 	//	//writeln("multipole moment calculation at t = ", t);
 	//	auto center = params.h1.get(t);  // the position of particle 1 at time t;
 	//	//writeln(center.v);
@@ -445,7 +445,7 @@ void main(string[] args)
 	//		foreach(m;-1..2)
 	//		{
 	//			import nucd.em;
-	//			mE1[m] += pot[0] * lq.w ;//* Ylm(1, m, lq.theta, lq.phi);
+	//			mE1[m] += pot[0] * lq.w * Ylm(1, m, lq.theta, lq.phi);
 	//		}	
 	//	}
 	//	auto t_ret = get_retarded_time(params.h2, center.x, t);
