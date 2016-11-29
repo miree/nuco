@@ -22,6 +22,7 @@ import nucd.geometry;
 // some types
 alias Vector!(2,real) Vec2;
 alias Vector!(3,real) Vec3;
+alias Vector!(4,real) Vec4;
 alias Matrix!(3,3,rowMajor,real) Mat3;
 
 

@@ -417,43 +417,60 @@ void main(string[] args)
 	theta_file.writeln();
 
 
-	//writeln("multipoles at 1st");
-	//foreach(p; params.h1.points)
-	//{
-	//	double t = p.t;
-	//	//writeln("multipole moment calculation at t = ", t);
-	//	auto center = params.h1.get(t);  // the position of particle 1 at time t;
-	//	//writeln(center.v);
-	//	import lebedev_quadrature;
-	//	Vec3 pot;
-	//	import std.complex;
-	//	Complex!double[int] mE1;
-	//	foreach(m;-1..2) mE1[m] = complex(0,0);
-	//	//auto lq = LQ(0,0,0,0,0,1);
-	//	foreach(lq;lq0110)
-	//	{
-	//		real r = 1;
-	//		auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
-	//		//multipole_file.writeln(dr[0]," ", dr[1]);
-	//		auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
-	//		auto t_ret = get_retarded_time(params.h2, center3D, t);
-	//		auto point_ret = params.h2.get(t_ret);
-	//		auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
-	//		auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
-	//		pot = transform_potentials(center.v/c, 
-	//					potential3D(center3D - retx3D, retv3D/c, params.Zt));
-	//		foreach(m;-1..2)
-	//		{
-	//			import nucd.em;
-	//			mE1[m] += pot[0] * lq.w * Ylm(1, m, lq.theta, lq.phi);
-	//		}	
-	//	}
-	//	auto t_ret = get_retarded_time(params.h2, center.x, t);
-	//	auto point_ret = params.h2.get(t_ret);
-	//	pot = transform_potentials(center.v/c, 
-	//					potential(center.x - point_ret.x, point_ret.v/c, params.Zp));
-	//	multipole_file.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length );
-	//}
+	writeln("multipoles at 1st");
+	auto multipole_file = File("multipole_at_1.dat", "w+");
+	foreach(p; params.h1.points)
+	{
+		double t = p.t;
+		//writeln("multipole moment calculation at t = ", t);
+		auto center = params.h1.get(t);  // the position of particle 1 at time t;
+		//writeln(center.v);
+		import lebedev_quadrature;
+		Vec3 pot;
+		import std.complex;
+		immutable int lambda_max = 4;
+		Complex!double[int][lambda_max] mE;
+		foreach (lambda; 0..lambda_max)
+		{
+			foreach(m;-lambda..lambda+1) mE[lambda][m] = complex(0,0);
+		}
+		//auto lq = LQ(0,0,0,0,0,1);
+		real r = 0.1; // [fm]
+		foreach(lq;lq0110)
+		{
+			auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
+			//multipole_file.writeln(dr[0]," ", dr[1]);
+			auto point_on_sphere_3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
+			auto t_ret = get_retarded_time(params.h2, point_on_sphere_3D, t);
+			auto point_ret = params.h2.get(t_ret);
+			auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
+			auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
+			pot = transform_potentials(center.v/c, 
+						potential3D(point_on_sphere_3D - retx3D, retv3D/c, params.Zt));
+			foreach(lambda; 0..lambda_max)
+			{ 
+				foreach(m;-lambda..lambda+1)
+				{
+					import nucd.em;
+					mE[lambda][m] += pot[0] * lq.w * Ylm(lambda, m, lq.theta, lq.phi);
+				}	
+			}
+		}
+		auto t_ret = get_retarded_time(params.h2, center.x, t);
+		auto point_ret = params.h2.get(t_ret);
+		pot = transform_potentials(center.v/c, 
+						potential(center.x - point_ret.x, point_ret.v/c, params.Zp));
+		//multipole_file.writeln(center.tau-params.p1_tau0, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length );
+		multipole_file.write(center.tau-params.p1_tau0, " ");
+		foreach(lambda; 0..lambda_max)
+		{ 
+			foreach(m;-lambda..lambda+1)
+			{
+				multipole_file.write(mE[lambda][m].re, " ", mE[lambda][m].im,  " ");
+			}
+		}
+		multipole_file.writeln();
+	}
 //
 //	writeln("multipoles at 2nd");
 //	auto multipole_file2 = File("multipole_at_2.dat", "w+");
