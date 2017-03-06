@@ -111,7 +111,7 @@ struct History
 	long last_index_low;
 	long last_index_high;
 	
-	int n_hit, n_miss;
+	int n_hit, n_miss, n_all_lookups, n_direct_shortcut, n_shortcut;
 
 	struct Point
 	{
@@ -217,11 +217,24 @@ struct History
 		//if (last_index_high - last_index_low == 1)
 		if (!(pa.t < t && pb.t > t))
 		{
-			// find two nearest neigbors to the requested time 
-			// by means of bisection
+			++n_all_lookups;
 			long index_low  = 0;
 			long index_high = points.length-1;
-			
+			// try to see if expanding the interval by 1 works (a small optimization)
+			if (last_index_low != 0 && last_index_high != points.length)
+			{
+				pa = &points[last_index_low-1];
+				pb = &points[last_index_high+1];
+				if (pa.t < t && pb.t > t)
+				{
+					index_low = last_index_low-1;
+					index_high = last_index_high+1;
+					++n_shortcut;
+				}			
+			}
+
+			// find two nearest neigbors to the requested time 
+			// by means of bisection
 			int n_lookup = 0;
 			while(index_high - index_low > 1)
 			{
@@ -244,6 +257,10 @@ struct History
 			
 			pa = &points[index_low];   
 			pb = &points[index_high];
+		}
+		else
+		{
+			++n_direct_shortcut;
 		}
 
 		if (!pa.coefficients_available)

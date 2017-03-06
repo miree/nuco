@@ -494,6 +494,6 @@ void main(string[] args)
 //		multipole_file2.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length);
 //	}
 
-//	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss);
-//	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss);
+	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss, "   all lookups1 = ", params.h1.n_all_lookups, "   avoided lookups1 = ", params.h1.n_direct_shortcut, "   shortcuts1 = ", params.h1.n_shortcut);
+	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss, "   all lookups2 = ", params.h2.n_all_lookups, "   avoided lookups2 = ", params.h2.n_direct_shortcut, "   shortcuts2 = ", params.h2.n_shortcut);
 }
