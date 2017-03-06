@@ -134,6 +134,8 @@ public:
 		mult =  mlt;
 		m    = -mlt.order;
 	}
+	@property int     l() {return mult.order;}
+	
 	@property bool    empty() { return m > mult.order; }
 	@property ref int front() { return m; }
 	void           popFront() { ++m; }

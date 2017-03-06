@@ -206,6 +206,14 @@ struct Vector(uint dim, T = double)
 		}
 };
 
+Vector!(3,T) eulerVector(T = double)(in double r, in double theta, in double phi)
+{
+	return Vector!(3,T)([r * cos(phi) * sin(theta),
+						 r * sin(phi) * sin(theta),
+						 r *            cos(theta)]);
+}
+
+
 Vector!(3,T) polarVector(T = double)(in double r, in double phi, in double theta)
 {
 	return Vector!(3,T)([r * sin(phi) * sin(theta),
