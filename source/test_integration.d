@@ -26,10 +26,10 @@ void main()
 		double theta = uniform(0,  PI);
 		double phi   = uniform(0,2*PI);
 		// center of the field-creating charge 
-		auto r_prime = eulerVector!real(20,theta,phi);
+		auto r_prime = eulerVector!real(6,theta,phi);
 		writeln(r_prime);
 
-		auto orientation = Orientation(E2);
+		auto orientation = Orientation(E1);
 		auto l = orientation.l;
 		foreach(m;orientation)
 		{
@@ -38,13 +38,14 @@ void main()
 			//int l = 2, m = 2;
 			// numerical calculation of the Integral
 			Complex!real S_numeric = 0;
+			double r_len = uniform(0.01,3.0);
 			foreach(lq;lq0110)
 			{
-				auto r = Vec3([lq.x,lq.y,lq.z]);
+				auto r = Vec3([lq.x,lq.y,lq.z])*r_len;
 				S_numeric += 4*PI* lq.w * f(r - r_prime) * Ylm(l,m, lq.theta, lq.phi);
 			}
 
-			Complex!real S_analytic = 4*PI/(2*l+1) * (1.0/r_prime.length^^(l+1)) * Ylm(l,m, theta, phi);
+			Complex!real S_analytic = 4*PI/(2*l+1) * (r_len^^l/r_prime.length^^(l+1)) * Ylm(l,m, theta, phi);
 
 
 			writeln("numerical result = ", S_numeric);
