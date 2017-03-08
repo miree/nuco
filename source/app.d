@@ -34,51 +34,9 @@ import nonrelat_dynamics;
 import relat_dynamics;
 import integrate;
 import parameters;
+import nucd.kinematics;
 
-/// returns b2 as seen from an observer moved with b1. 
-/// Arguments are in units of c
-Vec2 velocity_addition(Vec2 b1, Vec2 b2)
-{
-	import nucd.geometry;
-	Mat3 boost;
-	boost.boost_direction(b1);
-	//boost.print();
-	
-	auto g2 = gamma(b2.length);
-	Vec3 bb2 = Vec3([g2, g2*b2[0], g2*b2[1]]);
-	import std.stdio;
-	bb2 = boost*bb2;
-	return Vec2([bb2[1]/bb2[0],bb2[2]/bb2[0]]);
-}
 
-// transfrom an angle theta (measured in lab frame)
-// into the CM frame. 
-real transform_theta(real betaCM, real beta, real theta)
-{
-	auto beta_CM = Vec2([betaCM, 0]);
-	auto v = Vec2([cos(theta),sin(theta)])*beta;
-	auto v_CM = velocity_addition(beta_CM, v);
-	return  atan2(v_CM[1],v_CM[0]);
-}
-
-Vec2 transform_direction(Vec2 r, Vec2 beta)
-{
-//	write(r, "  ");
-	Vec2 e_beta = beta/beta.length;
-	Vec2 r_para = e_beta*(r*e_beta);
-	Vec2 r_perp = r-r_para;
-	r_para *= gamma(beta.length);
-	Vec2 retval = r_para + r_perp;
-//	write("    ", retval);
-	return retval;
-	//import geometry;
-	//Mat3 boost;
-	//boost.boost_direction(beta);
-	//auto rr = Vec3([0,r[0],r[1]]);
-	//rr = boost*rr;
-	//writeln("      ", rr);
-	//return Vec2([rr[1],rr[2]]);
-}
 
 void help(string arg0)
 {
@@ -89,6 +47,11 @@ void main(string[] args)
 {
 	// deal with input parameters from the command line
 	Parameters params;
+
+	// hard-code nuclear structure information
+
+
+
 	getopt(args,
 			"Ap",        &params.Ap,
 			"Zp",        &params.Zp,
@@ -310,7 +273,7 @@ void main(string[] args)
 		auto beta_proj_out_lab = velocity_addition(beta_CM, params.h1.points[$-1].v/c);
 		auto beta_targ_in_lab  = velocity_addition(beta_CM, params.h2.points[0  ].v/c);
 		auto beta_targ_out_lab = velocity_addition(beta_CM, params.h2.points[$-1].v/c);
-		
+		writeln("beta_CM       = ", params.beta_CM);
 		writeln("-------------------------lab system--------------------------------");
 		writeln("beta_proj_in   = ", beta_proj_in_lab[0] , " ", beta_proj_in_lab[1] , "   ", beta_proj_in_lab.length);
 		writeln("beta_proj_out  = ", beta_proj_out_lab[0], " ", beta_proj_out_lab[1], "   ", beta_proj_out_lab.length);
@@ -416,6 +379,59 @@ void main(string[] args)
 	}
 	theta_file.writeln();
 
+
+	writeln("multipols at projectile position");
+	auto infofile = File("infofile.dat", "w+");	
+	foreach(p; params.h1.points)
+	{
+		real t = p.t;//params.t0;
+		auto projectile_center = params.h1.get(t);
+		auto projectile_pos_2d = projectile_center.x;
+		auto t_ret             = get_retarded_time(params.h2, projectile_pos_2d, t);
+		auto target_center     = params.h2.get(t_ret);
+		real r  = 0.001; // radius of the sphere
+		import lebedev_quadrature;
+		int l = 3;
+		Complex!double[int] mEl;
+		foreach(m;-l..l+1) mEl[m] = complex(0,0);
+
+		////writeln((target_center.x - projectile_center.x).length, " ", c*(t_ret-t));
+		auto R    = direction_from_mooved_system(projectile_center.v/c,  projectile_center.x - target_center.x);
+		auto beta = velocity_addition(projectile_center.v/c, target_center.v/c);
+		auto potential = potential(R, beta, params.Zt);
+
+
+		//foreach(lq;lq0110)
+		//{
+		//	import types;
+		//	auto dr = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
+		//	//infofile.writeln(dr[0]," ",dr[1]," ",dr[2]);
+		//	auto R = projectile_center.x-target_center.x;
+		//	auto R3d = Vec3([R[0],R[1],0])+dr;
+		//	auto potential = transform_potentials(projectile_center.v/c,
+		//										  potential3D(R3d, Vec3(target_center.v/c), params.Zt));
+		//	foreach(m;-l..l+1)
+		//	{
+		//		import nucd.em;
+		//		mEl[m] += potential[0] * lq.w * Ylm(l, m, lq.theta, lq.phi);
+		//	}		
+		//}
+		//foreach(m;-l..l+1) mEl[m] *= 4*PI/r^^l;
+		//writeln("-----");
+		infofile.write(t, " ", p.tau, " ");//, p.fields.E[0], " " , p.fields.E[1], " " , p.fields.B, " ");
+		infofile.writeln(potential[0], " ", potential[1], " ", potential[2], " ", R.length);
+		//foreach(m;-l..l+1)
+		//{
+		//	//infofile.write(mEl[m].abs, " " );
+		//	//writeln(m,":", (mEl[m].re!=0)?(((-1)^^m)*mEl[m].re/mEl[-m].re):0, " ", (mEl[m].im!=0)?(((-1)^^m)*mEl[m].im/mEl[-m].im):0 );
+		//}		
+		//infofile.writeln();
+
+	}
+	foreach(field;params.h1.fields)
+	{
+		//infofile.writeln(field.tau, " ", field.pot[0], " ", field.pot[1], " ", field.pot[2]);
+	}
 
 	//writeln("multipoles at 1st");
 	//foreach(p; params.h1.points)

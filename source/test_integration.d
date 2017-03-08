@@ -27,13 +27,13 @@ void main()
 		double phi   = uniform(0,2*PI);
 		// center of the field-creating charge 
 		auto r_prime = eulerVector!real(6,theta,phi);
-		writeln(r_prime);
+		//writeln(r_prime);
 
 		auto orientation = Orientation(E1);
 		auto l = orientation.l;
 		foreach(m;orientation)
 		{
-			writeln(l," : ",m);
+			//writeln(l," : ",m);
 
 			//int l = 2, m = 2;
 			// numerical calculation of the Integral
@@ -42,15 +42,25 @@ void main()
 			foreach(lq;lq0110)
 			{
 				auto r = Vec3([lq.x,lq.y,lq.z])*r_len;
+				//writeln(eulerAngles(r), Vec3([r_len, lq.theta, lq.phi]));
 				S_numeric += 4*PI* lq.w * f(r - r_prime) * Ylm(l,m, lq.theta, lq.phi);
 			}
 
 			Complex!real S_analytic = 4*PI/(2*l+1) * (r_len^^l/r_prime.length^^(l+1)) * Ylm(l,m, theta, phi);
 
 
-			writeln("numerical result = ", S_numeric);
-			writeln("analytic  result = ", S_analytic);
+			//writeln("numerical result = ", S_numeric);
+			//writeln("analytic  result = ", S_analytic);
 
 		}
 	}
+
+
+	import nucd.kinematics;
+	// test addVelocity function
+	auto b1 = Vec2([0.5,-0.6]);
+	auto b2 = Vec2([0.5,-0.1]);
+
+	writeln(addVelocity_old(b1,b2), " " , addVelocity(b1,b2), " ", velocity_addition(b2*(-1),b1));
+	writeln(addVelocity_old(b2,b1), " " , addVelocity(b2,b1), " ", velocity_addition(b1*(-1),b2));
 }

@@ -22,7 +22,21 @@ import nucd.geometry;
 // some types
 alias Vector!(2,real) Vec2;
 alias Vector!(3,real) Vec3;
+alias Vector!(4,real) Vec4;
 alias Matrix!(3,3,rowMajor,real) Mat3;
+
+
+
+// transfrom the points in the history into a system, where the initial 
+// flight direction of the projectile is the z-axis.
+Vector!(3,T) to_z_polar(T)(Vector!(3,T) r)
+{
+	return Vector!(3,T)([r[1],r[2],r[0]]);
+}
+Vector!(3,T) to_z_polar(T)(Vector!(2,T) r)
+{
+	return Vector!(3,T)([r[1],0,r[0]]);
+}
 
 
 

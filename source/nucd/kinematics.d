@@ -77,7 +77,7 @@ Vector betaCM(Vector)(double m1, Vector beta1, double m2, Vector beta2)
 
 /// addition of velocities
 /// returns beta1 boosted by beta
-Vector addVelocity(Vector)(Vector beta1, Vector beta)
+Vector addVelocity_old(Vector)(Vector beta1, Vector beta)
 {
 	// unit vectors, parallel and perpendicular to beta
 	auto para = beta*(beta1*beta/(beta.length*beta.length));
@@ -101,6 +101,97 @@ Vector addVelocity(Vector)(Vector beta1, Vector beta)
 	auto b1_perp_boosted = (b1_perp)    / ( g*(1 + b1_para*b) );
 	
 	return para*b1_para_boosted + perp*b1_perp_boosted;
+}
+
+
+Vector addVelocity(Vector)(Vector beta1, Vector beta)
+{
+	if (beta.length==0) return beta1;
+	if (beta1.length==0) return beta;
+
+	// unit vectors, parallel and perpendicular to beta
+	auto para = beta*(beta1*beta/(beta.length*beta.length));
+	auto perp = beta1 - para;
+	
+	auto para_boosted = (para + beta)/ (                     1 + beta1*beta  );
+	auto perp_boosted = (perp)       / ( gamma(beta.length)*(1 + beta1*beta) );
+	
+	return para_boosted + perp_boosted;
+}
+
+
+import nucd.geometry;
+/// returns b2 as seen from an observer moved with b1. 
+/// Arguments are in units of c
+Vector!(2,T) velocity_addition(T)(Vector!(2,T) b1, Vector!(2,T) b2)
+{
+	Matrix!(3,3,rowMajor,T) boost;
+	boost.boost_direction(b1);//Vector!(2,T)([b1[0],b1[1]]));
+	//boost.print();
+	
+	auto g2 = gamma(b2.length);
+	Vector!(3,T) bb2 = Vector!(3,T)([g2, g2*b2[0], g2*b2[1]]);
+	import std.stdio;
+	auto bb3 = boost*bb2;
+//	writeln(boost);
+//	writeln("*");
+//	writeln(bb2);
+//	writeln("=");
+//	writeln(bb3);
+	return Vector!(2,T)([bb3[1]/bb3[0],bb3[2]/bb3[0]]);
+}
+
+// transfrom an angle theta (measured in lab frame)
+// into the CM frame. 
+real transform_theta(real betaCM, real beta, real theta)
+{
+	import nucd.geometry;
+	auto beta_CM = Vector!(2,real)([betaCM, 0]);
+	auto v = Vector!(2,real)([cos(theta),sin(theta)])*beta;
+	auto v_CM = velocity_addition(beta_CM, v);
+	return  atan2(v_CM[1],v_CM[0]);
+}
+
+Vector!(2,T) direction_from_mooved_system(T)(Vector!(2,T) beta, Vector!(2,T) dx)
+{
+	Matrix!(3,3,rowMajor,T) boost;
+	boost.boost_direction(beta);
+
+	Vector!(3,T) x0 = Vector!(3,T)([dx.length,dx[0],dx[1]]);
+	auto x1 = boost*x0;
+
+	return Vector!(2,T)([x1[1],x1[2]]);
+}
+
+Vector!(2,T) transform_direction(T)(Vector!(2,T) r, Vector!(2,T) beta)
+{
+	import nucd.geometry;
+//	write(r, "  ");
+	Vector!(2,T) e_beta = beta/beta.length;
+	Vector!(2,T) r_para = e_beta*(r*e_beta);
+	Vector!(2,T) r_perp = r-r_para;
+	r_para *= gamma(beta.length);
+	Vector!(2,T) retval = r_para + r_perp;
+//	write("    ", retval);
+	return retval;
+	//import geometry;
+	//Mat3 boost;
+	//boost.boost_direction(beta);
+	//auto rr = Vec3([0,r[0],r[1]]);
+	//rr = boost*rr;
+	//writeln("      ", rr);
+	//return Vector!(2,T)([rr[1],rr[2]]);
+}
+
+Vector!(3,T) transform_direction(T)(Vector!(3,T) r, Vector!(3,T) beta)
+{
+	import nucd.geometry;
+	Vector!(3,T) e_beta = beta/beta.length;
+	Vector!(3,T) r_para = e_beta*(r*e_beta);
+	Vector!(3,T) r_perp = r-r_para;
+	r_para *= gamma(beta.length);
+	Vector!(3,T) retval = r_para + r_perp;
+	return retval;
 }
 
 ///// returns b2 as seen from an observer moved with b1

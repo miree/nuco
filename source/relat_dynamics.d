@@ -42,12 +42,14 @@ void transform_fields(Vec2 beta, ref Vec2 E, ref real B)
 	//writeln(E_old, " , ", B_old, "  -->  ", E, " , ", B);
 }
 
+// return the potential as seen from an observer that is moving with beta
 auto transform_potentials(Vec2 beta, Vec3 pot)
 {
 	import nucd.geometry;
 	Mat3 boost;
 	boost.boost_direction(beta);
-	return boost*pot;
+	Vec3 result = boost*pot;
+	return result;
 }
 
 real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5e-8)
@@ -293,10 +295,42 @@ extern(C) int ode_relativistic(double t, double* ys, double *dydts, void *params
 	pars.B21 = B21;
 	pars.E12 = E12;
 	pars.B12 = B12;
-	
-	pars.pot21 = transform_potentials(v1/c ,potential(x1-pars.p2_ret.x, pars.p2_ret.v/c, q2));
-	pars.pot12 = transform_potentials(v2/c ,potential(x2-pars.p1_ret.x, pars.p1_ret.v/c, q1));
+
+// orginal... hat irgendwie Fehler...	
+//	pars.pot21 = transform_potentials(v1/c ,potential(x1-pars.p2_ret.x, pars.p2_ret.v/c, q2));
+//	pars.pot12 = transform_potentials(v2/c ,potential(x2-pars.p1_ret.x, pars.p1_ret.v/c, q1));
+// netter Versuch.. geht aber auch nicht..
+//	pars.pot21 = potential(pars.p2_ret.x-x1, velocity_addition(v1/c, pars.p2_ret.v/c), q2);
+//	pars.pot12 = potential(pars.p1_ret.x-x2, velocity_addition(v2/c, pars.p1_ret.v/c), q1);
+
+//	pars.pot21 = potential(x1-pars.p2_ret.x, pars.p2_ret.v/c, q2);
+//	pars.pot12 = potential(x2-pars.p1_ret.x, pars.p1_ret.v/c, q1);
+
+	// nur die Relativgeschwindigkeit ausgeben: 
+	auto v_rel21 = velocity_addition(v1/c, pars.p2_ret.v/c)*gamma(v1.length/c)^^2; // velocity of 2 as seen from particle 1
+	auto v_rel12 = velocity_addition(v2/c, pars.p1_ret.v/c)*gamma(v2.length/c)^^2; // velocity of 1 as seen from particle 2
+	//auto r_rel21 = direction_from_mooved_system(v1/c, x1-pars.p2_ret.x);
+	//auto r_rel12 = direction_from_mooved_system(v2/c, x2-pars.p1_ret.x);
+
+	//pars.pot21[0] = v_rel21[0];   pars.pot21[1] = v_rel21[1];   pars.pot21[2] = r_rel21.length;
+	//pars.pot12[0] = v_rel12[0];   pars.pot12[1] = v_rel12[1];   pars.pot12[2] = r_rel12.length;
 
 	return 0;
 }
+
+extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
+{
+	// get parameters
+	auto pars = cast(Parameters*)params;
+	real  m1 = pars.Ap*u;
+	real  m2 = pars.At*u;
+	real  q1 = pars.Zp;
+	real  q2 = pars.Zt;
+
+	return 0;
+}
+
+
+
+
 

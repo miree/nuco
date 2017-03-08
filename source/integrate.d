@@ -50,12 +50,21 @@ void integrate(ode, type)(ode func,
 	if (params.CM)
 	{
 		double beta_CM = nucd.kinematics.betaCM(params.Ap, params.betap, params.At, 0);
-		//writeln("betaCM = ", beta_CM);
+		writeln("betaCM = ", beta_CM);
 
-		beta1 = (beta1-beta_CM)/(1-beta1*beta_CM);
-		beta2 = (beta2-beta_CM)/(1-beta2*beta_CM);
+		//beta1 = (beta1-beta_CM)/(1-beta1*beta_CM);
+		//beta2 = (beta2-beta_CM)/(1-beta2*beta_CM);
+		beta1 = velocity_addition(Vec2([beta_CM,0]),Vec2([beta1,0]) ) [0];
+		beta2 = velocity_addition(Vec2([beta_CM,0]),Vec2([beta2,0]) ) [0];
 		beta_CM = nucd.kinematics.betaCM(params.Ap, beta1, params.At, beta2);
-		//writeln("betaCM = ", beta_CM);
+		writeln("betaCM = ", beta_CM);
+		auto Ekin1 = kinEnergy(gamma(beta1),params.Ap*u);
+		auto Ekin2 = kinEnergy(gamma(beta2),params.At*u);
+		// kinetic energy of the CM moovement is missing in the CM system.
+		// This is the kinetic energy of the total system mass (gamma1*m1 + gamma2*m2) mooving with velocity beta_CM
+		auto EkinCM = kinEnergy(gamma(params.beta_CM),(gamma(beta1)*params.Ap+gamma(beta2)*params.At)*u);
+		writeln("Ekin_CM[MeV]  = ", Ekin1,"+",Ekin2,"+",EkinCM," = ", Ekin1+Ekin2+EkinCM);
+		writeln("Ekin_lab[MeV] = ", params.Ep*params.Ap);
 	}
 	
 	

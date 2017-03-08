@@ -74,6 +74,20 @@ struct Parameters
 	real p1_tau0; // proper time of particle 1 of closest approach
 	real p2_tau0; // proper time of particle 2 of closest approach
 
+	struct Level
+	{
+		double energy;
+		int    halfspin; // I=2 would have half-spin=4, I=1/2 would have half-spin=1
+	}
+	Level[] levels;
+	struct Transition
+	{
+		int from;  // index into the levels array, pointing to the 
+		int to;    // index into the levels array 
+		int lambda; // oder of multipolarity: E2 transitions would have lambda=2, E1 transitions would have lambda=1
+		double ME; // matrix element in units of e*fm^lambda
+	}
+	Transition[] transitions;
 }
 
 struct Spline
@@ -101,7 +115,7 @@ struct Spline
 }
 
 
-struct History
+struct History // This could also be called "Trajectory", but since it is used to do position lookups at earlier times, the name "History" seems appropriate.
 {
 	// helper value to accelerate the lookup of retarded time
 	// (it stores the result of the last calculated retarded time)
@@ -115,16 +129,16 @@ struct History
 
 	struct Point
 	{
-		real t;
-		Vec2 x;
-		Vec2 v;
-		Vec2 a;
-		real tau;
+		real t;   // time in the simulation frame
+		Vec2 x;   // position
+		Vec2 v;   // velocity
+		Vec2 a;   // acceleration
+		real tau; // proper time (Eigenzeit), and its first and second derivative
 		real dtaudt;
 		real d2taudt2;
 		
 		// the spline coefficients are buffered inside the supporting points
-		// to make computation faster. the left point stores the spline coefficients
+		// to make computation faster. the left(earlier) point stores the spline coefficients
 		// for the interpolation between left and right supports.
 		real a0,a1,a2;
 		real b0,b1,b2;
@@ -175,7 +189,7 @@ struct History
 	body
 	{
 		import nucd.kinematics;
-		// add position, velocity, acceleration, tau, firt and second derivative dtaudt, d2taudt2
+		// add position, velocity, acceleration, tau, first and second derivative dtaudt, d2taudt2
 		points ~= Point(t,x,v,a, tau,1.0/gamma(v.length/c),-gamma(v.length/c)*v.length*a.length/c^^2);
 		fields ~= Field(tau,e,b,pot);
 		//ts   ~= t;

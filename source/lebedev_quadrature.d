@@ -16,6 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+import nucd.geometry;
+import types;
+Vec3 sim_frame_vector(double x, double y, double z)
+{
+	return Vec3([z,x,y]);
+}
+
 
 // coefficients taken from 
 //  V.I. Lebedev, and D.N. Laikov

@@ -206,6 +206,15 @@ struct Vector(uint dim, T = double)
 		}
 };
 
+
+Vector!(3,T) eulerAngles(T = double)(Vector!(3,T) r)
+{
+	T rxy   = sqrt(r[0]^^2+r[1]^^2);
+	T theta = atan2(rxy,r[2]);
+	T phi   = atan2(r[1],r[0]); 
+	return Vector!(3,T)([sqrt(rxy^^2+r[2]^^2),theta,phi]);
+}
+
 Vector!(3,T) eulerVector(T = double)(in double r, in double theta, in double phi)
 {
 	return Vector!(3,T)([r * cos(phi) * sin(theta),
