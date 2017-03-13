@@ -32,18 +32,18 @@ struct Parameters
 	double bp;
 	
 	real timeframe = 1000000; // integrate the equations of motion from -timeframe to +timeframe
-	                          // this is given in units of zeptoseconds (the default is 1 ps)
+							  // this is given in units of zeptoseconds (the default is 1 ps)
 	
 	double beta_CM;    // center of mass velocity in the beginning of the simulation
 	bool CM = false;  // true if the velocties should be
 					  // transformed into center-of-mass system
 					  // before integrating the differential equation
 	bool rotate = false; // rotate the trajectory such that it is symmetric
-	                     // to the x-axis
+						 // to the x-axis
 	bool compare_rutherford = false; // tells the program to output a file containing
-								     // simulated trajectories together with the 
-								     // non-relativistic Rutherford trajectory
-								     // for quantitative comparison
+									 // simulated trajectories together with the 
+									 // non-relativistic Rutherford trajectory
+									 // for quantitative comparison
 	double compare_rutherford_w = 10; // this will calculate analytic solution for w in [-10,10]
 									  // and compare to the simulation
 	int compare_rutherford_N = 1000; // determines the number of points calculated in the analytic solution
@@ -52,7 +52,8 @@ struct Parameters
 
 	IntegrationMethod method;
 	double accuracy = 1e-6; // integration accuracy
-	
+	double excitation_accuracy = 1e-4;
+
 	Vec2   a1 = Vec2([0,0]);
 	Vec2   a2 = Vec2([0,0]);
 	Vec2  E21 = Vec2([0,0]);
@@ -74,20 +75,85 @@ struct Parameters
 	real p1_tau0; // proper time of particle 1 of closest approach
 	real p2_tau0; // proper time of particle 2 of closest approach
 
+	import std.complex;
+	struct Amplitude
+	{
+		Complex!double a;
+		Complex!double dadtau;
+		uint ys_index_re;
+		uint ys_index_im;
+		uint level_index; // index into the input level array
+		int L;
+		int M; 
+		double E; // energy of the corresponding level
+		Transition[] transitions; // all transitions that connect this level
+	}
+	Amplitude[] amplitudes;
+	struct Transition
+	{
+		int L; // half-spin of connected level
+		int M; // half-spin of connected level
+		double E; // energy of connected level
+		int lambda; // lambda=1 for E1, lambda=2 for E2, ... 
+		Complex!double ME; // matrix element
+		uint idx; // index into the amplitudes array
+	}
+
+	// for input only
 	struct Level
 	{
-		double energy;
-		int    halfspin; // I=2 would have half-spin=4, I=1/2 would have half-spin=1
+		double E; // excitation energy
+		double L; // integer or half integer
 	}
-	Level[] levels;
-	struct Transition
+	Level[]      levels;
+	struct MatrixElement
 	{
 		int from;  // index into the levels array, pointing to the 
 		int to;    // index into the levels array 
 		int lambda; // oder of multipolarity: E2 transitions would have lambda=2, E1 transitions would have lambda=1
-		double ME; // matrix element in units of e*fm^lambda
+		Complex!double ME; // matrix element in units of e*fm^lambda
 	}
-	Transition[] transitions;
+	MatrixElement[] matrix_elements;
+	void preprocess_transitions()
+	{
+		uint ys_idx = 0;
+		foreach(level_idx,level; levels)
+		{
+			import std.math;
+			int twoL = cast(int)lround(level.L*2);
+			for(int twoM = -twoL; twoM <= twoL; twoM += 2)
+			{
+				amplitudes ~= Amplitude(complex(0,0), complex(0,0),
+										cast(uint)(ys_idx++), cast(uint)(ys_idx++), cast(uint)(level_idx), 
+										twoL, twoM, level.E);
+			}
+		}
+		// now that all amplitudes are present... 
+		//   ... include the transitions
+		foreach(index_to,   ref ampl_to  ; amplitudes)
+		foreach(index_from, ref ampl_from; amplitudes)
+		{
+			foreach(me; matrix_elements)
+			{
+				if (me.to == ampl_to.level_index && me.from == ampl_from.level_index )
+				{
+					import std.math;
+					ampl_to.transitions ~= Transition( ampl_from.L, ampl_from.M, ampl_from.E,
+													   me.lambda*2, me.ME, 
+													   cast(uint)(index_from));
+					ampl_from.transitions ~= Transition( ampl_to.L, ampl_to.M, ampl_to.E,
+														 me.lambda*2, (-1)^^((me.lambda*2+ampl_to.L-ampl_from.L)/2)*me.ME, 
+														 cast(uint)(index_to));
+														
+				}
+			}
+		}
+		foreach(amplitude; amplitudes)
+		{
+			import std.stdio;
+			writeln(amplitude);
+		}
+	}
 }
 
 struct Spline
@@ -335,10 +401,10 @@ struct History // This could also be called "Trajectory", but since it is used t
 		//writeln("n_lookup = ", n_lookup);
 
 		return Point(t,
-		             Vec2([x,y]),
-		             Vec2([vx,vy]),
-		             Vec2([ax,ay]),
-		             tau);
+					 Vec2([x,y]),
+					 Vec2([vx,vy]),
+					 Vec2([ax,ay]),
+					 tau);
 	}
 	
 	//Field get_field(double tau)

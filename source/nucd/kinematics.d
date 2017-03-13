@@ -162,6 +162,16 @@ Vector!(2,T) direction_from_mooved_system(T)(Vector!(2,T) beta, Vector!(2,T) dx)
 
 	return Vector!(2,T)([x1[1],x1[2]]);
 }
+Vector!(3,T) direction3d_from_mooved_system(T)(Vector!(3,T) beta, Vector!(3,T) dx)
+{
+	Matrix!(4,4,rowMajor,T) boost;
+	boost.boost_direction(beta);
+
+	Vector!(4,T) x0 = Vector!(4,T)([dx.length,dx[0],dx[1],dx[2]]);
+	auto x1 = boost*x0;
+
+	return Vector!(3,T)([x1[1],x1[2],x1[3]]);
+}
 
 Vector!(2,T) transform_direction(T)(Vector!(2,T) r, Vector!(2,T) beta)
 {

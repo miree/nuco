@@ -35,7 +35,7 @@ void transform_fields(Vec2 beta, ref Vec2 E, ref real B)
 	auto E_perp = E_old - E_para;        // Efield perpendiculear to velocity
 	
 	E_perp = (E_perp + Vec2([beta[1]*B_old, 
-                            -beta[0]*B_old]))*g;
+							-beta[0]*B_old]))*g;
 	E = E_para + E_perp;
 	import std.stdio;
 	//writeln(E_old.length, "   ", (E_para+E_perp).length);
@@ -52,7 +52,7 @@ auto transform_potentials(Vec2 beta, Vec3 pot)
 	return result;
 }
 
-real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5e-8)
+real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5e-12)
 {
 	int n_get = 0; // count number of call to the history for profiling reasons
 
@@ -76,7 +76,7 @@ real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5
 		auto last_point = h.get(t-delta_t1);
 		VecDim x_ret = last_point.x;
 		VecDim v_ret = last_point.v;
-    
+	
 		real Z1 = c*delta_t1 - (x-x_ret).length;
 		real dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
 		//writeln("1: Z=",Z1, "   dZdt=",dZdt,"      delta_t=", delta_t1, "       Z/dZdt=",Z1/dZdt);
@@ -91,7 +91,7 @@ real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5
 		//dZdt = c+v_ret*(x-x_ret)/(x-x_ret).length;
 		//writeln("2: Z=",Z2, "   dZdt=",dZdt,"      delta_t=", delta_t2, "       Z/dZdt=",Z2/dZdt);
 		//writeln("----------------------------");
-    
+	
 		if (Z1*Z2 < 0)
 		{
 			if (Z1 > Z2)
@@ -197,7 +197,7 @@ auto E_field_radiative( Vec2 r_ret,  Vec2 beta_ret,  Vec2 dbetadt_ret, real q_re
 	auto er = r_ret/R;
 	auto g  = gamma(beta_ret.length);
 	return ((er-beta_ret)*(er*dbetadt_ret) - dbetadt_ret*(er*(er-beta_ret))) * q_ret 
-	    /  (c * R * (1 - beta_ret*er)^^3);
+		/  (c * R * (1 - beta_ret*er)^^3);
 }
 auto B_field(Vec2 x,  Vec2 x_ret,  Vec2 E)
 {
@@ -320,6 +320,8 @@ extern(C) int ode_relativistic(double t, double* ys, double *dydts, void *params
 
 extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 {
+	import gsl.gsl_sf_coupling;
+	import gsl.gsl_errno;
 	// get parameters
 	auto pars = cast(Parameters*)params;
 	real  m1 = pars.Ap*u;
@@ -327,10 +329,120 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 	real  q1 = pars.Zp;
 	real  q2 = pars.Zt;
 
+	foreach(ref ampl; pars.amplitudes)
+	{
+		// Copy the two numbers into a std.Complex!double
+		// to facilitate complex calculations
+		ampl.a.re = ys[ampl.ys_index_re];
+		ampl.a.im = ys[ampl.ys_index_im];
+	}
+
+	auto point = pars.h1.get(t);
+
+	// derivative of proper time tau with respect to t
+	auto dtaudt = 1./gamma(point.v.length/c);
+
+
+	auto matrix = new Complex!double[100][100];
+	foreach(ref row; matrix)
+		foreach(ref cell; row)
+			cell = complex(0,0);
+	// compute the first derivatives
+	foreach(i, ref ampl; pars.amplitudes)
+	{
+		ampl.dadtau = complex(0,0);
+		foreach(j, tran; ampl.transitions)
+		{
+			auto cell_content = complex(0,0);
+			auto Ir = ampl.L;
+			auto Mr = ampl.M;
+			auto Is = tran.L;
+			auto Ms = tran.M;
+			auto lambda = tran.lambda;
+			auto omega = (ampl.E - tran.E)/hbar;
+			auto S_lm = projectile_S_lm(lambda, *pars, t);
+			for (int mu = -lambda; mu <= lambda; mu += 2)
+			{
+				// all spin numbers are half-spins (i.e. are multiplied by 2)
+				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
+											Ms,   mu  , Mr);
+				auto factor = complex((-1)^^((Is-Ms)/2) / hbar, -1); // -i * (-1)^^(Is-Ms) / hbar 
+				auto ME = factor * C * 1;//tran.ME;
+
+				auto Q = expi(omega*t) * ME * S_lm[mu] * pars.amplitudes[tran.idx].a;
+				import std.stdio;
+				//writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
+				//if (C*factor*ME != 0)
+				//{
+				//	writeln(Is, " ", lambda, " ", Ir);
+				//	writeln(Ms, " ",    mu , " ", Mr);
+				//	writeln(C,  " ", factor, " ", ME, " ", S_lm[mu]);
+				//	writeln("-----------");
+				//}
+				ampl.dadtau += Q;
+				cell_content += Q;
+			}
+			matrix[i][j] = cell_content;
+		}
+	}
+
+		import std.stdio;
+	//writeln("----------------------- t=",t);
+	//foreach(i;0..pars.amplitudes.length)
+	//{
+	//	foreach(j;0..pars.amplitudes.length)
+	//	{
+	//		writef("%15s ", matrix[i][j]);
+	//	}
+	//	writeln();
+	//}
+	//writeln("-----------------------");
+
+
+	foreach(ref ampl; pars.amplitudes)
+	{
+		// copy the time derivative o the amplitudes back to the 
+		// array that is used by GSL for numerical integration
+		dydts[ampl.ys_index_re] = ampl.dadtau.re * dtaudt;
+		dydts[ampl.ys_index_im] = ampl.dadtau.im * dtaudt;
+	}
+
 	return 0;
 }
 
 
+// calculate the orbital integral
+import std.complex;
+Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
+{
+	import std.math;
+	import lebedev_quadrature;
 
+	Complex!double[int] Slm;
+	foreach(m;-l..l+1) Slm[m] = complex(0,0);
+	auto projectile_center = params.h1.get(t);
+	auto projectile_pos_3d = Vec3(projectile_center.x);
+	real r  = 0.1; // radius of the sphere
 
+	foreach(lq;lq0110)
+	{
+		import types;
+		auto dr   = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
+		auto center = Vec3(projectile_center.x)+dr;
+		auto t_ret             = get_retarded_time(params.h2, center, t);
+		auto target_center     = params.h2.get(t_ret);
+		auto target_pos_3d     = Vec3(target_center.x);
+
+		auto R    = direction3d_from_mooved_system(Vec3(projectile_center.v)/c,  (projectile_pos_3d+dr) - target_pos_3d);
+		auto beta = velocity_addition(projectile_center.v/c, target_center.v/c);
+		auto potential = potential3D(R, Vec3(beta), params.Zt);
+		foreach(m;-l..l+1)
+		{
+			import nucd.em;
+			Slm[m] += potential[0] * lq.w * Ylm(l, m, lq.theta, lq.phi);
+		}		
+	}
+	foreach(m;-l..l+1) Slm[m] *= (4*PI/r);
+	return Slm;
+}
 

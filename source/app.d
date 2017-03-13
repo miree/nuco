@@ -49,7 +49,15 @@ void main(string[] args)
 	Parameters params;
 
 	// hard-code nuclear structure information
-
+	params.levels ~= Parameters.Level(0.0  , 0); // 0: ground state
+	params.levels ~= Parameters.Level(1.123, 2); // 1: first 2+ at 1.0 MeV (4 is half spin: 4/2 = l = 2)
+	//params.levels ~= Parameters.Level(2.345, 4); // 2: first 4+ at 1.0 MeV (8 is half spin: 8/2 = l = 4)
+	// transitions (only electrical ones so far)
+	params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(97.5)); // E2 transition from ground to 2+1 state with 100 e fm^2
+	//params.matrix_elements ~= Parameters.MatrixElement(1,1, 1, 17.5); // E2 transition from ground to 2+1 state with 100 e fm^2
+	//params.matrix_elements ~= Parameters.MatrixElement(0,2, 2, 50);  // E2 transition from ground to 4+1 state with 100 e fm^2
+	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, 55.3);  // E2 transition from    2+1 to 4+1 state with 100 e fm^2
+	params.preprocess_transitions();
 
 
 	getopt(args,
@@ -379,137 +387,44 @@ void main(string[] args)
 	}
 	theta_file.writeln();
 
-
+	import relat_dynamics;
 	writeln("multipols at projectile position");
 	auto infofile = File("infofile.dat", "w+");	
 	foreach(p; params.h1.points)
 	{
 		real t = p.t;//params.t0;
-		auto projectile_center = params.h1.get(t);
-		auto projectile_pos_2d = projectile_center.x;
-		auto t_ret             = get_retarded_time(params.h2, projectile_pos_2d, t);
-		auto target_center     = params.h2.get(t_ret);
-		real r  = 0.001; // radius of the sphere
-		import lebedev_quadrature;
-		int l = 3;
-		Complex!double[int] mEl;
-		foreach(m;-l..l+1) mEl[m] = complex(0,0);
+		int  l = 2;
+		Complex!double[int] Slm = projectile_S_lm(l, params, t);
 
-		////writeln((target_center.x - projectile_center.x).length, " ", c*(t_ret-t));
-		auto R    = direction_from_mooved_system(projectile_center.v/c,  projectile_center.x - target_center.x);
-		auto beta = velocity_addition(projectile_center.v/c, target_center.v/c);
-		auto potential = potential(R, beta, params.Zt);
-
-
-		//foreach(lq;lq0110)
-		//{
-		//	import types;
-		//	auto dr = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
-		//	//infofile.writeln(dr[0]," ",dr[1]," ",dr[2]);
-		//	auto R = projectile_center.x-target_center.x;
-		//	auto R3d = Vec3([R[0],R[1],0])+dr;
-		//	auto potential = transform_potentials(projectile_center.v/c,
-		//										  potential3D(R3d, Vec3(target_center.v/c), params.Zt));
-		//	foreach(m;-l..l+1)
-		//	{
-		//		import nucd.em;
-		//		mEl[m] += potential[0] * lq.w * Ylm(l, m, lq.theta, lq.phi);
-		//	}		
-		//}
-		//foreach(m;-l..l+1) mEl[m] *= 4*PI/r^^l;
-		//writeln("-----");
-		infofile.write(t, " ", p.tau, " ");//, p.fields.E[0], " " , p.fields.E[1], " " , p.fields.B, " ");
-		infofile.writeln(potential[0], " ", potential[1], " ", potential[2], " ", R.length);
-		//foreach(m;-l..l+1)
-		//{
-		//	//infofile.write(mEl[m].abs, " " );
-		//	//writeln(m,":", (mEl[m].re!=0)?(((-1)^^m)*mEl[m].re/mEl[-m].re):0, " ", (mEl[m].im!=0)?(((-1)^^m)*mEl[m].im/mEl[-m].im):0 );
-		//}		
-		//infofile.writeln();
+		infofile.write(t, " ", p.tau, " ");
+		foreach(m;-l..l+1)
+		{
+			infofile.write(Slm[m].abs, " " );
+		}		
+		infofile.writeln();
 
 	}
-	foreach(field;params.h1.fields)
-	{
-		//infofile.writeln(field.tau, " ", field.pot[0], " ", field.pot[1], " ", field.pot[2]);
-	}
-
-	//writeln("multipoles at 1st");
-	//foreach(p; params.h1.points)
-	//{
-	//	double t = p.t;
-	//	//writeln("multipole moment calculation at t = ", t);
-	//	auto center = params.h1.get(t);  // the position of particle 1 at time t;
-	//	//writeln(center.v);
-	//	import lebedev_quadrature;
-	//	Vec3 pot;
-	//	import std.complex;
-	//	Complex!double[int] mE1;
-	//	foreach(m;-1..2) mE1[m] = complex(0,0);
-	//	//auto lq = LQ(0,0,0,0,0,1);
-	//	foreach(lq;lq0110)
-	//	{
-	//		real r = 1;
-	//		auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
-	//		//multipole_file.writeln(dr[0]," ", dr[1]);
-	//		auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
-	//		auto t_ret = get_retarded_time(params.h2, center3D, t);
-	//		auto point_ret = params.h2.get(t_ret);
-	//		auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
-	//		auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
-	//		pot = transform_potentials(center.v/c, 
-	//					potential3D(center3D - retx3D, retv3D/c, params.Zt));
-	//		foreach(m;-1..2)
-	//		{
-	//			import nucd.em;
-	//			mE1[m] += pot[0] * lq.w * Ylm(1, m, lq.theta, lq.phi);
-	//		}	
-	//	}
-	//	auto t_ret = get_retarded_time(params.h2, center.x, t);
-	//	auto point_ret = params.h2.get(t_ret);
-	//	pot = transform_potentials(center.v/c, 
-	//					potential(center.x - point_ret.x, point_ret.v/c, params.Zp));
-	//	multipole_file.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length );
-	//}
-//
-//	writeln("multipoles at 2nd");
-//	auto multipole_file2 = File("multipole_at_2.dat", "w+");
-//	for (double t = -0.5; t <= 0.5; t += 0.0002)
-//	{
-//		//writeln("multipole moment calculation at t = ", t);
-//		auto center = params.h2.get(t);  // the position of particle 1 at time t;
-//		//writeln(center.v);
-//		import lebedev_quadrature;
-//		Vec3 pot;
-//		import std.complex;
-//		Complex!double[int] mE1;
-//		foreach(m;-1..2) mE1[m] = complex(0,0);
-//		//auto lq = LQ(0,0,0,0,0,1);
-//		foreach(lq;lq0110)
-//		{
-//			real r = 1;
-//			auto dr = transform_direction(Vec2([lq.x,lq.y])*r, center.v/c);
-//			//multipole_file2.writeln(dr[0]," ", dr[1]);
-//			auto center3D = Vec3([center.x[0]+dr[0], center.x[1]+dr[1],lq.z*r]);
-//			auto t_ret = get_retarded_time_3D(params.h1, center3D[0], center3D[1], center3D[2], t);
-//			auto point_ret = params.h1.get(t_ret);
-//			auto retx3D   = Vec3([point_ret.x[0], point_ret.x[1], 0]);
-//			auto retv3D   = Vec3([point_ret.v[0], point_ret.v[1], 0]); 
-//			pot = transform_potentials(center.v/c, 
-//						potential3D(center3D - retx3D, retv3D/c, params.Zp));
-//			foreach(m;-1..2)
-//			{
-//				import nucd.em;
-//				mE1[m] += pot[0] * lq.w ;//* Ylm(1, m, lq.theta, lq.phi);
-//			}	
-//		}
-//		auto t_ret = get_retarded_time(params.h1, center.x, t);
-//		auto point_ret = params.h1.get(t_ret);
-//		pot = transform_potentials(center.v/c, 
-//						potential(center.x - point_ret.x, point_ret.v/c, params.Zt));
-//						
-//		multipole_file2.writeln(center.tau, " ", pot[0], " ", mE1[-1].abs, " ", mE1[0].abs, " ", center.v.length);
-//	}
 
 	writeln("hits1 = ", params.h1.n_hit, "   miss1 = ", params.h1.n_miss, "   all lookups1 = ", params.h1.n_all_lookups, "   avoided lookups1 = ", params.h1.n_direct_shortcut, "   shortcuts1 = ", params.h1.n_shortcut);
 	writeln("hits2 = ", params.h2.n_hit, "   miss2 = ", params.h2.n_miss, "   all lookups2 = ", params.h2.n_all_lookups, "   avoided lookups2 = ", params.h2.n_direct_shortcut, "   shortcuts2 = ", params.h2.n_shortcut);
+
+
+	foreach(i;-5..6)
+	{
+		writeln("(-1)^^",i,"=",(-1)^^i, " complex(0,1)^^",i,"=",complex(0,1)^^i);
+	}
+
+
+	import gsl.gsl_sf_coupling;
+	import gsl.gsl_errno;
+	auto C1 = gsl_sf_coupling_3j( 2, 2, 2, 
+								 -2, 2, 0);
+
+	auto C2 = gsl_sf_coupling_3j( 2,  2,  2, 
+								  0, -2,  2);
+
+	writeln("C1=",C1, " C2=",C2);
+
+	integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+
 }
