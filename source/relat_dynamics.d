@@ -366,12 +366,13 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 				// all spin numbers are half-spins (i.e. are multiplied by 2)
 				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
 											Ms,   mu  , Mr);
-				auto factor = complex((-1)^^((Is-Ms)/2) / hbar, -1); // -i * (-1)^^(Is-Ms) / hbar 
-				auto ME = factor * C * 1;//tran.ME;
+				//auto factor = complex((-1)^^((Is-Ms)/2) / hbar, -1); // -i * (-1)^^(Is-Ms) / hbar 
+				auto factor = complex((-1)^^((Is-Ms)/2), 0) * complex(0,1); // -i * (-1)^^(Is-Ms) / hbar 
+				auto ME = factor * C * tran.ME;
 
-				auto Q = expi(omega*t) * ME * S_lm[mu] * pars.amplitudes[tran.idx].a;
+				auto Q = expi(omega*t) * ME * S_lm[mu] ;
 				import std.stdio;
-				//writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
+				////writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
 				//if (C*factor*ME != 0)
 				//{
 				//	writeln(Is, " ", lambda, " ", Ir);
@@ -379,14 +380,14 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 				//	writeln(C,  " ", factor, " ", ME, " ", S_lm[mu]);
 				//	writeln("-----------");
 				//}
-				ampl.dadtau += Q;
+				ampl.dadtau += Q * pars.amplitudes[tran.idx].a;
 				cell_content += Q;
 			}
 			matrix[i][j] = cell_content;
 		}
 	}
 
-		import std.stdio;
+	//	import std.stdio;
 	//writeln("----------------------- t=",t);
 	//foreach(i;0..pars.amplitudes.length)
 	//{
