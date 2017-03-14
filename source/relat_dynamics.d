@@ -339,8 +339,6 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 
 	auto point = pars.h1.get(t);
 
-	// derivative of proper time tau with respect to t
-	auto dtaudt = 1./gamma(point.v.length/c);
 
 
 	auto matrix = new Complex!double[100][100];
@@ -354,7 +352,6 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 		ampl.dadtau = complex(0,0);
 		foreach(j, tran; ampl.transitions)
 		{
-			//write(j," ");
 			auto cell_content = complex(0,0);
 			auto Ir = ampl.L;
 			auto Mr = ampl.M;
@@ -362,33 +359,23 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 			auto Ms = tran.M;
 			auto lambda = tran.lambda;
 			auto omega = (ampl.E - tran.E)/hbar;
-			auto S_lm = projectile_S_lm(lambda, *pars, t);
+			auto S_lm = projectile_S_lm(lambda, *pars, t); // [e/fm^(lambda+1)]
 			for (int mu = -lambda; mu <= lambda; mu += 2)
 			{
-				// all spin numbers are half-spins (i.e. are multiplied by 2)
+				// all spin quantum numbers (Ir,Is,lambda,Mr,Ms,mu) are half-spins (i.e. have to be divided by 2 before usage, 
+				//       except for the 3j-Symbol where the function is implemented to work with half-spin values)
 				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
-											-Ms,  mu  , Mr);
-				//auto factor = complex((-1)^^((Is-Ms)/2) / hbar, -1); // -i * (-1)^^(Is-Ms) / hbar 
-				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))/hbar;//complex((-1)^^((lambda+Is-Ms+Ir-Is)/2), 0) ; // -i * (-1)^^(Is-Ms) / hbar 
-				auto ME = factor * C * tran.ME;
+											-Ms,  mu  , Mr); // no unit
+				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))/hbar; //[1/hbar] = [1/(MeV*zs)]
+				//            (-1)^^(Is-Ms)    *   -i        *       i^(-lambda)
+				auto Q = factor  * expi(omega*t) * C * S_lm[mu/2]       * tran.ME;
+				//  [ 1/(MeV*zs) *      1        * 1 *  e/fm^(lambda+1) * e*fm^lambda ] = [e^2/(MeV*fm*zs)] = [1/zs]
 
-				auto Q = factor * expi(omega*t) * C * S_lm[mu/2] * tran.ME ;
-				//import std.stdio;
-				//writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
-				//if (C != 0)
-				//{
-				//	writeln(i, " ", tran.idx);
-				//	writefln("/%3s %3s %3s\\",Is/2., lambda/2., Ir/2.);
-				//	writefln("\\%3s %3s %3s/",-Ms/2.,  mu/2. ,  Mr/2.);
-				//	writeln(C,  " \n", factor, " \n", ME, " \n", S_lm[mu/2], "\n", S_lm[-mu/2]);
-				//	writeln("-----------");
-				//}
 				ampl.dadtau += Q * pars.amplitudes[tran.idx].a;
-				cell_content += Q;//complex(0,1)*C*S_lm[mu]; // good!!
+				cell_content += Q;
 			}
 			matrix[i][tran.idx] = cell_content;
 		}
-		//writeln();
 	}
 
 	if (pars.debug_on)
@@ -406,6 +393,12 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 		}
 		writeln("-----------------------");
 	}
+
+	// derivative of proper time tau with respect to t
+	// the differential equation is written in terms of the proper time tau.
+	// But the integration variable is t.
+	// The derivative has to be multiplied with dtau/dt to do thing correctly 
+	auto dtaudt = 1./gamma(point.v.length/c);
 
 	foreach(ref ampl; pars.amplitudes)
 	{
