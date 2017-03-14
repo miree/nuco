@@ -423,7 +423,7 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 	foreach(m;-l..l+1) Slm[m] = complex(0,0);
 	auto projectile_center = params.h1.get(t);
 	auto projectile_pos_3d = Vec3(projectile_center.x);
-	real r  = 0.1; // radius of the sphere
+	real r  = 1; // radius of the sphere
 
 	foreach(lq;lq0110)
 	{
@@ -443,7 +443,7 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 			Slm[m] += potential[0] * lq.w * Ylm(l, m, lq.theta, lq.phi);
 		}		
 	}
-	foreach(m;-l..l+1) Slm[m] *= (4*PI/r);
+	foreach(m;-l..l+1) Slm[m] *= (4*PI/r^^l);
 	return Slm;
 }
 
