@@ -350,9 +350,11 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 	// compute the first derivatives
 	foreach(i, ref ampl; pars.amplitudes)
 	{
+		import std.stdio;
 		ampl.dadtau = complex(0,0);
 		foreach(j, tran; ampl.transitions)
 		{
+			//write(j," ");
 			auto cell_content = complex(0,0);
 			auto Ir = ampl.L;
 			auto Mr = ampl.M;
@@ -365,40 +367,45 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 			{
 				// all spin numbers are half-spins (i.e. are multiplied by 2)
 				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
-											Ms,   mu  , Mr);
+											-Ms,  mu  , Mr);
 				//auto factor = complex((-1)^^((Is-Ms)/2) / hbar, -1); // -i * (-1)^^(Is-Ms) / hbar 
-				auto factor = complex((-1)^^((Is-Ms)/2), 0) * complex(0,1); // -i * (-1)^^(Is-Ms) / hbar 
+				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))/hbar;//complex((-1)^^((lambda+Is-Ms+Ir-Is)/2), 0) ; // -i * (-1)^^(Is-Ms) / hbar 
 				auto ME = factor * C * tran.ME;
 
-				auto Q = expi(omega*t) * ME * S_lm[mu] ;
-				import std.stdio;
-				////writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
-				//if (C*factor*ME != 0)
+				auto Q = factor * expi(omega*t) * C * S_lm[mu/2] * tran.ME ;
+				//import std.stdio;
+				//writeln(Is," ", Ms, " ", lambda, " " , mu, " " , Ir, " " , Mr , "  :  ", C,  "  ", factor , "   ", ME);
+				//if (C != 0)
 				//{
-				//	writeln(Is, " ", lambda, " ", Ir);
-				//	writeln(Ms, " ",    mu , " ", Mr);
-				//	writeln(C,  " ", factor, " ", ME, " ", S_lm[mu]);
+				//	writeln(i, " ", tran.idx);
+				//	writefln("/%3s %3s %3s\\",Is/2., lambda/2., Ir/2.);
+				//	writefln("\\%3s %3s %3s/",-Ms/2.,  mu/2. ,  Mr/2.);
+				//	writeln(C,  " \n", factor, " \n", ME, " \n", S_lm[mu/2], "\n", S_lm[-mu/2]);
 				//	writeln("-----------");
 				//}
 				ampl.dadtau += Q * pars.amplitudes[tran.idx].a;
-				cell_content += Q;
+				cell_content += Q;//complex(0,1)*C*S_lm[mu]; // good!!
 			}
-			matrix[i][j] = cell_content;
+			matrix[i][tran.idx] = cell_content;
 		}
+		//writeln();
 	}
 
-	//	import std.stdio;
-	//writeln("----------------------- t=",t);
-	//foreach(i;0..pars.amplitudes.length)
-	//{
-	//	foreach(j;0..pars.amplitudes.length)
-	//	{
-	//		writef("%15s ", matrix[i][j]);
-	//	}
-	//	writeln();
-	//}
-	//writeln("-----------------------");
-
+	if (pars.debug_on)
+	{
+		import std.stdio;
+		
+		writeln("----------------------- t=",t);
+		foreach(i;0..pars.amplitudes.length)
+		{
+			foreach(j;0..pars.amplitudes.length)
+			{
+				writef("%15s ", matrix[i][j]);
+			}
+			writeln();
+		}
+		writeln("-----------------------");
+	}
 
 	foreach(ref ampl; pars.amplitudes)
 	{
@@ -428,11 +435,11 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 	foreach(lq;lq0110)
 	{
 		import types;
-		auto dr   = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
-		auto center = Vec3(projectile_center.x)+dr;
-		auto t_ret             = get_retarded_time(params.h2, center, t);
-		auto target_center     = params.h2.get(t_ret);
-		auto target_pos_3d     = Vec3(target_center.x);
+		auto dr            = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
+		auto center        = Vec3(projectile_center.x)+dr;
+		auto t_ret         = get_retarded_time(params.h2, center, t);
+		auto target_center = params.h2.get(t_ret);
+		auto target_pos_3d = Vec3(target_center.x);
 
 		auto R    = direction3d_from_mooved_system(Vec3(projectile_center.v)/c,  (projectile_pos_3d+dr) - target_pos_3d);
 		auto beta = velocity_addition(projectile_center.v/c, target_center.v/c);

@@ -208,7 +208,7 @@ void excite(ode, type)(ode func,
 											 &system, 
 											 &t, t2,
 											 &stp, ys.ptr);
-		if (status != GSL_SUCCESS)
+		if (status != GSL_SUCCESS || t > 50) // nothing will happen 50zs after the collision
 			break;
 
 		myt += h;
@@ -223,7 +223,7 @@ void excite(ode, type)(ode func,
 			import std.complex;
 			sum += abs(ampl.a)^^2;
 		}
-		writeln(t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
+		writeln("dt=",h,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
 
 
 		stepout.write(t, " ");

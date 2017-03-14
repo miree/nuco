@@ -54,6 +54,8 @@ struct Parameters
 	double accuracy = 1e-6; // integration accuracy
 	double excitation_accuracy = 1e-4;
 
+	bool debug_on = false;
+
 	Vec2   a1 = Vec2([0,0]);
 	Vec2   a2 = Vec2([0,0]);
 	Vec2  E21 = Vec2([0,0]);
@@ -142,7 +144,7 @@ struct Parameters
 													   me.lambda*2, me.ME, 
 													   cast(uint)(index_from));
 					ampl_from.transitions ~= Transition( ampl_to.L, ampl_to.M, ampl_to.E,
-														 me.lambda*2, (-1)^^((me.lambda*2+ampl_to.L-ampl_from.L)/2)*me.ME, 
+														 me.lambda*2,  (-1)^^((me.lambda*2+ampl_to.L-ampl_from.L)/2)* me.ME, 
 														 cast(uint)(index_to));
 														
 				}

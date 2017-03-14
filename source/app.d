@@ -54,6 +54,7 @@ void main(string[] args)
 	//params.levels ~= Parameters.Level(2.345, 4); // 2: first 4+ at 1.0 MeV (8 is half spin: 8/2 = l = 4)
 	// transitions (only electrical ones so far)
 	params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(97.5)); // E2 transition from ground to 2+1 state with 100 e fm^2
+	//params.matrix_elements ~= Parameters.MatrixElement(1,1, 2, complex(85.2)); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,1, 1, 17.5); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(0,2, 2, 50);  // E2 transition from ground to 4+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, 55.3);  // E2 transition from    2+1 to 4+1 state with 100 e fm^2
@@ -417,14 +418,42 @@ void main(string[] args)
 
 	import gsl.gsl_sf_coupling;
 	import gsl.gsl_errno;
-	auto C1 = gsl_sf_coupling_3j( 2, 2, 2, 
-								 -2, 2, 0);
+	auto C1 = gsl_sf_coupling_3j( 4,  4, 0, 
+								  4, -4, 0);
 
-	auto C2 = gsl_sf_coupling_3j( 2,  2,  2, 
-								  0, -2,  2);
+	auto C2 = gsl_sf_coupling_3j( 0,  4,  4, 
+								  0,  4, -4);
 
 	writeln("C1=",C1, " C2=",C2);
 
+	auto C3 = gsl_sf_coupling_3j( 2,  2, 0, 
+								  2, -2, 0);
+
+	auto C4 = gsl_sf_coupling_3j( 0,  2,  2, 
+								  0,  2, -2);
+
+	writeln("C3=",C3, " C4=",C4);
+
+
+
+	import integrate;
+	uint N = cast(uint)(2*params.amplitudes.length); // number of independent components: two components for each complex amplitude
+	double[] dydts = new double[N];
+	double[] ys    = new double[N];
+	foreach(idx;0..N) 
+	{
+		ys[idx]    = 0;
+		dydts[idx] = 0;
+	}
+	ys[0] = 1.0;  // initialy only ground state is occupied	
+	params.debug_on = true;
+	ode_excitation(0, ys.ptr, dydts.ptr, cast(void*)&params);
+
+
+
+	params.debug_on = false;
 	integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+
+
 
 }
