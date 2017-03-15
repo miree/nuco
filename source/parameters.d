@@ -100,6 +100,9 @@ struct Parameters
 		Complex!double ME; // matrix element
 		uint idx; // index into the amplitudes array
 	}
+	bool[] lambdas; // flags that are set to true if a value of labmda (e.g. 2 for E2 transition) is needed
+	                   // if only E1 transitions are there, lambdas will contain only 1 value: lambdas[0] = 1.
+	                   // if E1 and E3 transitions are present: lambas[0] = 1, lambdas[1] = 3
 
 	// for input only
 	struct Level
@@ -139,6 +142,9 @@ struct Parameters
 			{
 				if (me.to == ampl_to.level_index && me.from == ampl_from.level_index )
 				{
+					if (me.lambda >= lambdas.length) lambdas.length = me.lambda+1;
+					lambdas[me.lambda] = true;
+
 					import std.math;
 					ampl_to.transitions ~= Transition( ampl_from.L, ampl_from.M, ampl_from.E,
 													   me.lambda*2, me.ME, 
@@ -154,6 +160,12 @@ struct Parameters
 		{
 			import std.stdio;
 			writeln(amplitude);
+		}
+
+		foreach(i,lambda;lambdas)
+		{
+			import std.stdio;
+			writeln("lambda",i,"=",lambda);
 		}
 	}
 }

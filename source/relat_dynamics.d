@@ -350,6 +350,17 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 		foreach(ref cell; row)
 			cell = complex(0,0);
 	// compute the first derivatives
+	//auto S_lm = projectile_S_lm(lambda/2, *pars, t); // [e/fm^(lambda+1)]
+	Complex!double[int][] S_lm;
+	foreach(l,lambda;pars.lambdas)
+	{
+		Complex!double[int] dummy;
+		//import std.stdio;
+		//writeln(l, " ", lambda);
+		if (lambda) S_lm ~= projectile_S_lm(cast(int)l, *pars, t);
+		else S_lm ~= dummy;
+	}
+	//auto S_lm = projectile_S_lm(2, *pars, t); // [e/fm^(lambda+1)]
 	foreach(i, ref ampl; pars.amplitudes)
 	{
 		ampl.dadtau = complex(0,0);
@@ -365,14 +376,13 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 			auto lambda = tran.lambda;
 			auto omega = (ampl.E - tran.E)/hbar;
 			//writeln("omega=",omega);
-			auto S_lm = projectile_S_lm(lambda/2, *pars, t); // [e/fm^(lambda+1)]
 			for (int mu = -lambda; mu <= lambda; mu += 2)
 			{
 				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
 											-Ms,  mu  , Mr); // no unit
 				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))*ahc/hbar; //[1/hbar] = [1/(MeV*zs)]
 				//            (-1)^^(Is-Ms)    *   -i        *       i^(-lambda)
-				auto Q = factor  * expi(omega*tau) * C * S_lm[mu/2]       * tran.ME;
+				auto Q = factor  * expi(omega*tau) * C * S_lm[lambda/2][mu/2]      * tran.ME;
 				//  [ 1/(MeV*zs) *      1        * 1 *  e/fm^(lambda+1) * e*fm^lambda ] = [e^2/(MeV*fm*zs)] = [1/zs]
 
 				import std.math;
@@ -431,7 +441,7 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 	auto projectile_pos_3d = Vec3(projectile_center.x);
 	real r  = 0.1; // radius of the sphere
 
-	foreach(lq;lq0026)
+	foreach(lq;lq0110)
 	{
 		import types;
 		auto dr            = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));

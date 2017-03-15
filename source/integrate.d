@@ -229,7 +229,7 @@ void excite(ode, type)(ode func,
 			import std.complex;
 			sum += abs(ampl.a)^^2;
 		}
-		writeln(force_h?'*':'-'," dt=",stp,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
+		//writeln(force_h?'*':'-'," dt=",stp,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
 
 
 		stepout.write(t, " ");
