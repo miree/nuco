@@ -452,7 +452,7 @@ void main(string[] args)
 
 
 	params.debug_on = false;
-	integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+	integrate.excite_classical_coulex(&ode_coulex, gsl_odeiv2_step_rkf45, params);
 
 	import nucd.em;
 	foreach(Mr;-2..3)
@@ -519,8 +519,5 @@ void main(string[] args)
 	//	kfile.write(" ", (xi^^4/48.0)*gsl_sf_bessel_Kn(4, xi));
 	//	kfile.writeln();
 	//}
-
-	foreach(i;0..10)
-		writeln(i, " " , factorial(i), " " , ffactorial(i));
 
 }

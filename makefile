@@ -15,6 +15,19 @@ SOURCES_NUCO = \
           source/nucd/kinematics.d     \
           source/integrate.d           \
 
+SOURCES_COULEX = \
+          source/relat_dynamics.d      \
+          source/types.d               \
+          source/parameters.d          \
+          source/nonrelat_dynamics.d   \
+          source/coulex.d              \
+          source/lebedev_quadrature.d  \
+          source/nucd/em.d             \
+          source/nucd/nucleus.d        \
+          source/nucd/geometry.d       \
+          source/nucd/kinematics.d     \
+          source/integrate.d           \
+
 SOURCES_GSL = \
           source/gsl/gsl_odeiv2.d      \
           source/gsl/gsl_types.d       \
@@ -48,6 +61,9 @@ nuco: $(SOURCES_NUCO)
 
 test_integration: $(SOURCES_TEST)	
 	dmd $(SOURCES_TEST) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O -release -of=test_integration 
+
+coulex: $(SOUCES_COULEX)
+	dmd $(SOURCES_COULEX) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O -release -of=coulex 
 
 
 # this does not work anymore ? :-/

@@ -84,7 +84,7 @@ struct Multipolarity
 {
 private:
 	Mode mode;
-	int order;
+	int ord;
 
 public:
 	enum Mode
@@ -92,10 +92,14 @@ public:
 		E  = 1,
 		M  = 2
 	}
+	@property int order()
+	{
+		return this.ord;
+	}
 	this(Mode md, int or)
 	{
 		mode  = md;
-		order = or;
+		ord = or;
 	}
 }
 
@@ -304,6 +308,86 @@ double reducedTransitionStrength(double reducedMatrixElement, int twoIi)
 //	return sigma;
 //	
 //}
+
+import std.complex;
+import nucd.kinematics;
+Complex!double relativistic_coulex_excitation_amplitude(
+	Multipolarity mult, // multipolarity
+	int Ir,             // initial state angular momentum
+	int Mr,             // initial state m-quantum number
+	int Is,             // final state angular momentum
+	int Ms,             // final state m-quantum number
+	double ME,          // transition matrix element
+	double beta,        // v/c
+	double rho,         // impact parameter
+	double dE,          // Ef-Ei [MeV]
+	double Zp,          // projectile charge
+	double Ap,          // projectile mass
+	double Zt,          // target charge
+	double At           // target mass
+)
+{
+// some constants
+immutable real c    = 299.792458; // speed of light     [fm/zs]
+immutable real ahc  = 1.43996442; // alpha*hbar*c(=e^2) [MeV*fm]
+immutable real hbar = 0.65821195; // hbar               [MeV*zs]
+immutable real hc   = 197.32698;  // hbar*c             [MeV*fm]
+immutable real u    = 931.49406;  // atomic mass unit   [MeV/c^2]
+immutable real mp   = 938.272013; // proton  mass       [MeV/c^2]
+immutable real mn   = 939.565346; // neutron mass       [MeV/c^2]
+immutable real me   = 0.51099893; // electron mass      [MeV/c^2]
+
+
+	import std.math;
+	import gsl.gsl_sf_bessel;
+	import gsl.gsl_sf_coupling;
+
+	double omega = dE/hbar;
+	//	real mu = u * params.Ap*params.At/(params.Ap+params.At); // reduced mass
+	//	real modified_impact_parameter = params.bp + (PI/2) * params.Zt*params.Zp*ahc / (mu*params.betap^^2*gamma(params.betap));
+	// adiabaticity parameter
+	double m0c2 = u*Ap*At/(Ap+At); // reduced mass
+	double rho_mod = (rho + (PI/2) * Zp*Zt*ahc/(m0c2*beta^^2*gamma(beta)));
+	double xi = omega/(c*beta*gamma(beta)) * rho_mod;
+
+	//writeln("rho= ", rho);
+	//writeln("rho_mod=", rho_mod);
+	//writeln("xi = ", xi);
+	double k  = omega/c;
+
+	auto result = complex(0,0);
+	foreach(mu;Orientation(mult))
+	{
+		int lambda = mult.order;
+		result +=
+				 G(mult,mu, 1/beta)
+			   * (-1)^^(mu)
+			   * gsl_sf_bessel_Kn(mu, xi)
+			   * sqrt(2.0*lambda+1)
+			   * k^^lambda
+			   * (-1)^^(Is-Ms)
+			   * gsl_sf_coupling_3j( 2*Is, 2*lambda, 2*Ir,
+			   					    -2*Ms, 2*mu    , 2*Mr) * ME;
+
+			   //writeln("G    ", G(mult,mu, 1/beta));
+			   //writeln("-1   ", (-1)^^(mu));
+			   //writeln("Kn   ", gsl_sf_bessel_Kn(mu, xi));
+			   //writeln("sqrt ", sqrt(2.0*lambda+1));
+			   //writeln("k    ", k^^lambda);
+			   //writeln("-1   ", (-1)^^(Is-Ms));
+			   //writeln("C   ", gsl_sf_coupling_3j( 2*Is, 2*lambda, 2*Ir,
+			   //					                   -2*Ms, 2*mu    , 2*Mr));
+			   //writeln("ME  ", ME);
+			   //writeln();
+
+
+	}
+	result *=  complex(0,-1) // -i
+	         * Zt*ahc 
+             / (hc*beta*gamma(beta));
+
+	return result;
+}
 
 auto clebsch_gordan(real j1, real m1, real j2, real m2, real j3, real m3)
 {

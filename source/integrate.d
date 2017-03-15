@@ -174,13 +174,13 @@ void excite(ode, type)(ode func,
 	auto control = gsl_odeiv2_control_y_new(params.excitation_accuracy, 0.0);
 	auto evolve  = gsl_odeiv2_evolve_alloc(N);
 
-	double t1 = params.h1.points[0].t;   // time of first trajectory point
+	double t1 = params.h1.points[1].t;   // time of first trajectory point
 	double t2 = params.h1.points[$-1].t; // time of last trajectory point
 
 	// extract the step size from trajectory integration
 	// to resue them for excitation calculation
 	double[] hs;
-	for(uint i = 1; i < params.h1.points.length; ++i)
+	for(uint i = 2; i < params.h1.points.length; ++i)
 	{
 		hs ~= params.h1.points[i].t - params.h1.points[i-1].t;
 	}
@@ -201,13 +201,19 @@ void excite(ode, type)(ode func,
 	double myt = t1;
 	auto Nsteps = hs.length;
 	//double stp = 0.0001;
+	bool force_h = true;
+	double stp;
 	foreach(cnt,h; hs)
 	{
-		double stp = h;
+		if (force_h) stp = h;
+		double told = t;
+//		write("t=",t, "  -> dt=", stp);
 		int status = gsl_odeiv2_evolve_apply(evolve, control, step,
 											 &system, 
 											 &t, t2,
 											 &stp, ys.ptr);
+		if (stp < h) force_h = false;
+//		writeln("   -> t=",t, "  -> expected t=",told+h);
 		if (status != GSL_SUCCESS || t > 50) // nothing will happen 50zs after the collision
 			break;
 
@@ -223,7 +229,7 @@ void excite(ode, type)(ode func,
 			import std.complex;
 			sum += abs(ampl.a)^^2;
 		}
-		writeln("dt=",h,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
+		writeln(force_h?'*':'-'," dt=",stp,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
 
 
 		stepout.write(t, " ");
@@ -245,4 +251,78 @@ void excite(ode, type)(ode func,
 }
 
 
+
+// calculate Coulomb excitation amplitudes with classical analytic trajectories
+void excite_classical_coulex(ode, type)(ode func, 
+											 type T, 
+											 ref Parameters params)
+{
+	// setup the system
+	uint N = cast(uint)(2*params.amplitudes.length); // number of independent components: two components for each complex amplitude
+	auto system = gsl_odeiv2_system(func,   null, N, cast(void*)&params);
+
+	// setup the integrator
+	//auto T       = gsl_odeiv2_step_rkf45;
+	auto step    = gsl_odeiv2_step_alloc(T, N);
+	auto control = gsl_odeiv2_control_y_new(params.excitation_accuracy, 0.0);
+	auto evolve  = gsl_odeiv2_evolve_alloc(N);
+
+	double w1 = -50;
+	double w2 =  50;
+
+	double[] dydts = new double[N];
+	double[] ys    = new double[N];
+	foreach(idx;0..N) 
+	{
+		ys[idx]    = 0;
+		dydts[idx] = 0;
+	}
+	ys[0] = 1.0;  // initialy only ground state is occupied
+	
+	auto stepout  = File( "amp.dat", "w+");
+	
+	// integrate the ode
+	double w = w1;
+	//double stp = 0.0001;
+	double h = 0.01;
+	while (w < w2)
+	{
+		int status = gsl_odeiv2_evolve_apply(evolve, control, step,
+											 &system, 
+											 &t, t2,
+											 &h, ys.ptr);
+		if (status != GSL_SUCCESS || t > 50) // nothing will happen 50zs after the collision
+			break;
+
+		// call the function once more to get the acceleration and the EM-Fields at the advanced position.
+		// Not doing this implies that the last function call is at the desired position, which is (I believe)
+		// not guaranteed by the higher order integration procedures.
+		func(w, ys.ptr, dydts.ptr, cast(void*)&params);
+		
+		double sum = 0;
+		foreach(ampl; params.amplitudes)
+		{
+			import std.complex;
+			sum += abs(ampl.a)^^2;
+		}
+		writeln("h=",h,"   w=",w, "  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
+
+
+		stepout.write(t, " ");
+		foreach(y; ys)
+		{
+			stepout.write(y, " ");
+		}
+		stepout.writeln();
+
+		//break;
+	}
+	
+	gsl_odeiv2_evolve_free(evolve);
+	gsl_odeiv2_control_free(control);
+	gsl_odeiv2_step_free(step);
+
+	// do some post-processing
+
+}
 

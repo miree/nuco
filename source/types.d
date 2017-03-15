@@ -43,6 +43,7 @@ Vector!(3,T) to_z_polar(T)(Vector!(2,T) r)
 // some constants
 immutable real c    = 299.792458; // speed of light     [fm/zs]
 immutable real ahc  = 1.43996442; // alpha*hbar*c(=e^2) [MeV*fm]
+immutable real alpha= 7.29735256e-3; // alpha
 immutable real hbar = 0.65821195; // hbar               [MeV*zs]
 immutable real hc   = 197.32698;  // hbar*c             [MeV*fm]
 immutable real u    = 931.49406;  // atomic mass unit   [MeV/c^2]

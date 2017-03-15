@@ -320,6 +320,7 @@ extern(C) int ode_relativistic(double t, double* ys, double *dydts, void *params
 
 extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 {
+	import std.stdio;
 	import gsl.gsl_sf_coupling;
 	import gsl.gsl_errno;
 	// get parameters
@@ -338,6 +339,9 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 	}
 
 	auto point = pars.h1.get(t);
+	auto projectile = pars.h1.get(t);
+	double tau = projectile.tau;
+	//writeln("tau=",tau, "t=",t);
 
 
 
@@ -348,29 +352,30 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 	// compute the first derivatives
 	foreach(i, ref ampl; pars.amplitudes)
 	{
-		import std.stdio;
 		ampl.dadtau = complex(0,0);
 		foreach(j, tran; ampl.transitions)
 		{
 			auto cell_content = complex(0,0);
+			// all spin quantum numbers (Ir,Is,lambda,Mr,Ms,mu) are half-spins (i.e. have to be divided by 2 before usage, 
+			//       except for the 3j-Symbol where the function is implemented to work with half-spin values)
 			auto Ir = ampl.L;
 			auto Mr = ampl.M;
 			auto Is = tran.L;
 			auto Ms = tran.M;
 			auto lambda = tran.lambda;
 			auto omega = (ampl.E - tran.E)/hbar;
-			auto S_lm = projectile_S_lm(lambda, *pars, t); // [e/fm^(lambda+1)]
+			//writeln("omega=",omega);
+			auto S_lm = projectile_S_lm(lambda/2, *pars, t); // [e/fm^(lambda+1)]
 			for (int mu = -lambda; mu <= lambda; mu += 2)
 			{
-				// all spin quantum numbers (Ir,Is,lambda,Mr,Ms,mu) are half-spins (i.e. have to be divided by 2 before usage, 
-				//       except for the 3j-Symbol where the function is implemented to work with half-spin values)
 				auto C = gsl_sf_coupling_3j(Is, lambda, Ir, 
 											-Ms,  mu  , Mr); // no unit
-				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))/hbar; //[1/hbar] = [1/(MeV*zs)]
+				auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))*ahc/hbar; //[1/hbar] = [1/(MeV*zs)]
 				//            (-1)^^(Is-Ms)    *   -i        *       i^(-lambda)
-				auto Q = factor  * expi(omega*t) * C * S_lm[mu/2]       * tran.ME;
+				auto Q = factor  * expi(omega*tau) * C * S_lm[mu/2]       * tran.ME;
 				//  [ 1/(MeV*zs) *      1        * 1 *  e/fm^(lambda+1) * e*fm^lambda ] = [e^2/(MeV*fm*zs)] = [1/zs]
 
+				import std.math;
 				ampl.dadtau += Q * pars.amplitudes[tran.idx].a;
 				cell_content += Q;
 			}
@@ -399,20 +404,21 @@ extern(C) int ode_excitation(double t, double* ys, double *dydts, void *params)
 	// But the integration variable is t.
 	// The derivative has to be multiplied with dtau/dt to do thing correctly 
 	auto dtaudt = 1./gamma(point.v.length/c);
+	//writeln(projectile.dtaudt," ", dtaudt, " ", tau);
 
 	foreach(ref ampl; pars.amplitudes)
 	{
 		// copy the time derivative o the amplitudes back to the 
 		// array that is used by GSL for numerical integration
-		dydts[ampl.ys_index_re] = ampl.dadtau.re * dtaudt;
-		dydts[ampl.ys_index_im] = ampl.dadtau.im * dtaudt;
+		dydts[ampl.ys_index_re] =  ampl.dadtau.re * dtaudt;
+		dydts[ampl.ys_index_im] =  ampl.dadtau.im * dtaudt;
 	}
 
 	return 0;
 }
 
 
-// calculate the orbital integral
+// calculate the orbital integral for the projectile excitation
 import std.complex;
 Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 {
@@ -423,9 +429,9 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 	foreach(m;-l..l+1) Slm[m] = complex(0,0);
 	auto projectile_center = params.h1.get(t);
 	auto projectile_pos_3d = Vec3(projectile_center.x);
-	real r  = 1; // radius of the sphere
+	real r  = 0.1; // radius of the sphere
 
-	foreach(lq;lq0110)
+	foreach(lq;lq0026)
 	{
 		import types;
 		auto dr            = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
@@ -445,5 +451,162 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 	}
 	foreach(m;-l..l+1) Slm[m] *= (4*PI/r^^l);
 	return Slm;
+}
+
+// calculate the orbital integral for the target excitation
+Complex!double[int] target_S_lm(int l, ref Parameters params, real t)
+{
+	import std.math;
+	import lebedev_quadrature;
+
+	Complex!double[int] Slm;
+	foreach(m;-l..l+1) Slm[m] = complex(0,0);
+	auto target_center = params.h2.get(t);
+	auto target_pos_3d = Vec3(target_center.x);
+	real r  = 1; // radius of the sphere
+
+	foreach(lq;lq0110)
+	{
+		import types;
+		auto dr                = sim_frame_vector(lq.x,lq.y,lq.z)*r;//transform_direction(sim_frame_vector(lq.x,lq.y,lq.z)*r, Vec3(projectile_center.v/c));
+		auto center            = Vec3(target_center.x)+dr;
+		auto t_ret             = get_retarded_time(params.h1, center, t);
+		auto projectile_center = params.h1.get(t_ret);
+		auto projectile_pos_3d = Vec3(projectile_center.x);
+
+		auto R    = direction3d_from_mooved_system(Vec3(target_center.v)/c,  (target_pos_3d+dr) - projectile_pos_3d);
+		auto beta = velocity_addition(target_center.v/c, projectile_center.v/c);
+		auto potential = potential3D(R, Vec3(beta), params.Zp);
+		foreach(m;-l..l+1)
+		{
+			import nucd.em;
+			Slm[m] += potential[0] * lq.w * Ylm(l, m, lq.theta, lq.phi);
+		}		
+	}
+	foreach(m;-l..l+1) Slm[m] *= (4*PI/r^^l);
+	return Slm;
+}
+
+
+
+
+
+int factorial(int n)
+{
+	int result = 1;
+	for(int i = n; i >= 1; i-=1)
+		result *= i;
+	return result;
+}
+int ffactorial(int n)
+{
+	int result = 1;
+	for(int i = n; i >= 1; i -= 2)
+		result *= i;
+	return result;
+}
+
+extern(C) int ode_coulex(double w, double* ys, double *dydts, void *params)
+{
+	import std.stdio;
+	import gsl.gsl_sf_coupling;
+	import gsl.gsl_errno;
+	import nucd.em;
+	import std.math;
+
+	// get parameters
+	auto pars = cast(Parameters*)params;
+	real  m1 = pars.Ap*u;
+	real  m2 = pars.At*u;
+	real  q1 = pars.Zp;
+	real  q2 = pars.Zt;
+
+	foreach(ref ampl; pars.amplitudes)
+	{
+		// Copy the two numbers into a std.Complex!double
+		// to facilitate complex calculations
+		ampl.a.re = ys[ampl.ys_index_re];
+		ampl.a.im = ys[ampl.ys_index_im];
+	}
+
+	double m0c2 = u*pars.Ap*pars.At/(pars.Ap+pars.At); // reduced mass
+	double a = pars.Zp*pars.Zt*ahc/(m0c2*pars.betap^^2);
+	writeln("a=",a," fm");
+
+	auto matrix = new Complex!double[100][100];
+	foreach(ref row; matrix)
+		foreach(ref cell; row)
+			cell = complex(0,0);
+	// compute the first derivatives
+	foreach(i, ref ampl; pars.amplitudes)
+	{
+		ampl.dadtau = complex(0,0);
+		foreach(j, tran; ampl.transitions)
+		{
+			auto cell_content = complex(0,0);
+			auto Ir = ampl.L;
+			auto Mr = ampl.M;
+			auto Is = tran.L;
+			auto Ms = tran.M;
+			auto lambda = tran.lambda;
+			auto xi_rs = (a/(hc*pars.betap))*(ampl.E - tran.E);
+			//writeln("omega=",omega);
+			//auto S_lm = projectile_S_lm(lambda, *pars, t); // [e/fm^(lambda+1)]
+			for (int mu = -lambda; mu <= lambda; mu += 2)
+			{
+				// all spin quantum numbers (Ir,Is,lambda,Mr,Ms,mu) are half-spins (i.e. have to be divided by 2 before usage, 
+				//       except for the 3j-Symbol where the function is implemented to work with half-spin values)
+				auto Psi  = sqrt(16.*PI) * factorial(lambda/2-1) / ffactorial(lambda+1)
+				          * pars.Zt*alpha * tran.ME / a^^(lambda/2);
+				auto Ceta = sqrt(lambda+1.0)*(-1)^^((Is-Ms)/2)
+							* gsl_sf_coupling_3j(Is, lambda, Ir, 
+							  				     -Ms,  mu  , Mr); // no unit
+				auto Q = ffactorial(lambda-1)/factorial(lambda/2-1)
+				       * sqrt(PI/(lambda+1)) 
+				       * Ylm(lambda/2, mu/2, 0,0);
+				//auto factor = (-1)^^((Is-Ms)/2)*complex(0,-1)*(complex(0,1)^^(-lambda/2))/hbar; //[1/hbar] = [1/(MeV*zs)]
+				////            (-1)^^(Is-Ms)    *   -i        *       i^(-lambda)
+				//auto Q = factor  * expi(40*omega*tau) * C * S_lm[mu/2]       * tran.ME;
+				////  [ 1/(MeV*zs) *      1        * 1 *  e/fm^(lambda+1) * e*fm^lambda ] = [e^2/(MeV*fm*zs)] = [1/zs]
+//
+//				//ampl.dadtau += Q * pars.amplitudes[tran.idx].a;
+				//cell_content += Q;
+			}
+			matrix[i][tran.idx] = cell_content;
+		}
+	}
+
+	if (pars.debug_on)
+	{
+		import std.stdio;
+		
+		writeln("----------------------- w=",w);
+		foreach(i;0..pars.amplitudes.length)
+		{
+			foreach(j;0..pars.amplitudes.length)
+			{
+				writef("%15s ", matrix[i][j]);
+			}
+			writeln();
+		}
+		writeln("-----------------------");
+	}
+
+	// derivative of proper time tau with respect to t
+	// the differential equation is written in terms of the proper time tau.
+	// But the integration variable is t.
+	// The derivative has to be multiplied with dtau/dt to do thing correctly 
+	//auto dtaudt = 1./gamma(point.v.length/c);
+	//writeln(projectile.dtaudt," ", dtaudt, " ", tau);
+
+	foreach(ref ampl; pars.amplitudes)
+	{
+		// copy the time derivative o the amplitudes back to the 
+		// array that is used by GSL for numerical integration
+		dydts[ampl.ys_index_re] = ampl.dadtau.re;
+		dydts[ampl.ys_index_im] = ampl.dadtau.im;
+	}
+
+	return 0;
 }
 
