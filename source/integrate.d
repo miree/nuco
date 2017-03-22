@@ -203,21 +203,22 @@ void excite(ode, type)(ode func,
 	//double stp = 0.0001;
 	bool force_h = true;
 	double stp;
-	foreach(cnt,h; hs)
+	//foreach(cnt,h; hs)
+	for (int cnt = 0; t < 50; ++cnt)
 	{
-		if (force_h) stp = h;
+		if (force_h) stp = hs[cnt];
 		double told = t;
 //		write("t=",t, "  -> dt=", stp);
 		int status = gsl_odeiv2_evolve_apply(evolve, control, step,
 											 &system, 
 											 &t, t2,
 											 &stp, ys.ptr);
-		if (stp < h) force_h = false;
+		if (stp < hs[cnt]) force_h = false;
 //		writeln("   -> t=",t, "  -> expected t=",told+h);
 		if (status != GSL_SUCCESS || t > 50) // nothing will happen 50zs after the collision
 			break;
 
-		myt += h;
+		myt += hs[cnt];
 		// call the function once more to get the acceleration and the EM-Fields at the advanced position.
 		// Not doing this implies that the last function call is at the desired position, which is (I believe)
 		// not guaranteed by the higher order integration procedures.
@@ -229,7 +230,7 @@ void excite(ode, type)(ode func,
 			import std.complex;
 			sum += abs(ampl.a)^^2;
 		}
-		//writeln(force_h?'*':'-'," dt=",stp,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
+		writeln(force_h?'*':'-'," dt=",stp,"   ",t, " zs:  ", " sum = ", sum-1 , "   a[gs]=", params.amplitudes[0].a, " dadt[gs]=", params.amplitudes[0].dadtau);
 
 
 		stepout.write(t, " ");

@@ -52,6 +52,7 @@ auto transform_potentials(Vec2 beta, Vec3 pot)
 	return result;
 }
 
+// this function is a template to make it work with 2D vectors as well as 3D vectors
 real get_retarded_time(VecDim)(ref History h, ref VecDim x, real t, real eps = 5e-12)
 {
 	int n_get = 0; // count number of call to the history for profiling reasons
@@ -450,7 +451,7 @@ Complex!double[int] projectile_S_lm(int l, ref Parameters params, real t)
 		auto target_center = params.h2.get(t_ret);
 		auto target_pos_3d = Vec3(target_center.x);
 
-		auto R    = direction3d_from_mooved_system(Vec3(projectile_center.v)/c,  (projectile_pos_3d+dr) - target_pos_3d);
+		auto R    = direction3d_from_mooved_system(Vec3(projectile_center.v)/c,  (projectile_pos_3d) - (target_pos_3d+dr));
 		auto beta = velocity_addition(projectile_center.v/c, target_center.v/c);
 		auto potential = potential3D(R, Vec3(beta), params.Zt);
 		foreach(m;-l..l+1)
@@ -473,7 +474,7 @@ Complex!double[int] target_S_lm(int l, ref Parameters params, real t)
 	foreach(m;-l..l+1) Slm[m] = complex(0,0);
 	auto target_center = params.h2.get(t);
 	auto target_pos_3d = Vec3(target_center.x);
-	real r  = 1; // radius of the sphere
+	real r  = 0.1; // radius of the sphere
 
 	foreach(lq;lq0110)
 	{
@@ -484,7 +485,7 @@ Complex!double[int] target_S_lm(int l, ref Parameters params, real t)
 		auto projectile_center = params.h1.get(t_ret);
 		auto projectile_pos_3d = Vec3(projectile_center.x);
 
-		auto R    = direction3d_from_mooved_system(Vec3(target_center.v)/c,  (target_pos_3d+dr) - projectile_pos_3d);
+		auto R    = direction3d_from_mooved_system(Vec3(target_center.v)/c,  target_pos_3d - (projectile_pos_3d +dr));
 		auto beta = velocity_addition(target_center.v/c, projectile_center.v/c);
 		auto potential = potential3D(R, Vec3(beta), params.Zp);
 		foreach(m;-l..l+1)

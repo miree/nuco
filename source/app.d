@@ -50,11 +50,14 @@ void main(string[] args)
 
 	// hard-code nuclear structure information
 	params.levels ~= Parameters.Level(0.0,    0); // 0: ground state
-	params.levels ~= Parameters.Level(0.6166, 2); // 1: first 2+ at 1.0 MeV (4 is half spin: 4/2 = l = 2)
+	params.levels ~= Parameters.Level(0.6166, 2); // 1: first 2+ 
+	//params.levels ~= Parameters.Level(1.4361, 4); // 2: first 4+ 
 	//params.levels ~= Parameters.Level(15.2, 1); // 2: first 4+ at 1.0 MeV (8 is half spin: 8/2 = l = 4)
 	// transitions (only electrical ones so far)
-	params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(61.8)); // E2 transition from ground to 2+1 state with 100 e fm^2
-	//params.matrix_elements ~= Parameters.MatrixElement(0,2, 1, complex(85.2)); // E2 transition from ground to 2+1 state with 100 e fm^2
+	params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(61.8)); // E2 transition from ground to 2+1 state 
+	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, complex(113.6)); // E2 transition from 4+1 to 2+1 state 
+
+	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, complex(61.8)); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,1, 1, 17.5); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(0,2, 2, 50);  // E2 transition from ground to 4+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, 55.3);  // E2 transition from    2+1 to 4+1 state with 100 e fm^2
@@ -477,6 +480,13 @@ void main(string[] args)
 		writeln(idx,":",amp.a,"    P_if=",abs(amp.a)^^2);
 	}
 
+	// output for automatic data capture
+	write("xxx:");
+	write(params.Ep, " ");
+	foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
+	writeln();
+
+
 
 	double db = 0.02;
 	double sigma = 0.0;
@@ -520,7 +530,7 @@ void main(string[] args)
 	//	kfile.writeln();
 	//}
 
-	foreach(i;0..10)
-		writeln(i, " " , factorial(i), " " , ffactorial(i));
+	//foreach(i;0..10)
+	//	writeln(i, " " , factorial(i), " " , ffactorial(i));
 
 }
