@@ -62,7 +62,7 @@ SOURCES_TEST = \
           source/nucd/kinematics.d     \
           source/integrate.d           \
 
-all: nuco test_integration slcoulex
+all: nuco test_integration #slcoulex
 
 nuco: $(SOURCES_NUCO)
 	dmd $(SOURCES_NUCO) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O -release -of=nuco 

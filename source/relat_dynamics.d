@@ -200,11 +200,9 @@ auto E_field_radiative( Vec2 r_ret,  Vec2 beta_ret,  Vec2 dbetadt_ret, real q_re
 	return ((er-beta_ret)*(er*dbetadt_ret) - dbetadt_ret*(er*(er-beta_ret))) * q_ret 
 		/  (c * R * (1 - beta_ret*er)^^3);
 }
-auto B_field(Vec2 x,  Vec2 x_ret,  Vec2 E)
+auto B_field(Vec2 r_ret,  Vec2 E)
 {
-	auto r  = x-x_ret;
-	auto R  = r.length;
-	auto er = r/R;
+	auto er = r_ret/r_ret.length;
 	return (er[0]*E[1] - er[1]*E[0]);
 }
 
@@ -255,7 +253,7 @@ extern(C) int ode_relativistic(double t, double* ys, double *dydts, void *params
 	auto E21_u  = E_field_uniform  (x1-pars.p2_ret.x, pars.p2_ret.v/c, q2);
 	auto E21_r  = E_field_radiative(x1-pars.p2_ret.x, pars.p2_ret.v/c, pars.p2_ret.a/c, q2);
 	auto E21    = E21_u + E21_r;
-	auto B21    = B_field(x1, pars.p2_ret.x, E21);
+	auto B21    = B_field(x1-pars.p2_ret.x, E21);
 	auto dx1dt = v1;
 	auto dv1dt = acceleration(E21, B21, v1, q1, m1);
 	auto dtau1dt = 1./gamma(v1.length/c);
@@ -267,7 +265,7 @@ extern(C) int ode_relativistic(double t, double* ys, double *dydts, void *params
 	auto E12_u  = E_field_uniform  (x2-pars.p1_ret.x, pars.p1_ret.v/c, q1);
 	auto E12_r  = E_field_radiative(x2-pars.p1_ret.x, pars.p1_ret.v/c, pars.p1_ret.a/c, q1);
 	auto E12    = E12_u + E12_r;
-	auto B12    = B_field(x2, pars.p1_ret.x, E12);
+	auto B12    = B_field(x2-pars.p1_ret.x, E12);
 	auto dx2dt  = v2;
 	auto dv2dt  = acceleration(E12, B12, v2, q2, m2);
 	auto dtau2dt = 1./gamma(v2.length/c);
