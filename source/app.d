@@ -37,10 +37,9 @@ import parameters;
 import nucd.kinematics;
 
 
-
 void help(string arg0)
 {
-	stderr.writeln("call for example: " ~ arg0 ~ " --Ap=85 --Zp=35 --At=197 --Zt=79 --E=10  --method=relativistic --accuracy=1e-7 --b=10");
+	stderr.writeln("call for example: " ~ arg0 ~ " --Ap=85 --Zp=35 --At=197 --Zt=79 --E=10 --levelE=0 --levelI=0 --levelE=.6166 --levelI=2 --MEfrom=0 --MEto=1 --MElambda=2 --MEvalue=61.8 --method=relativistic --accuracy=1e-7 --b=10");
 }
 
 void main(string[] args)
@@ -49,39 +48,79 @@ void main(string[] args)
 	Parameters params;
 
 	// hard-code nuclear structure information
-	params.levels ~= Parameters.Level(0.0,    0); // 0: ground state
-	params.levels ~= Parameters.Level(0.6166, 2); // 1: first 2+ 
+	//params.levels ~= Parameters.Level(0.0,    0); // 0: ground state
+	//params.levels ~= Parameters.Level(0.6166, 2); // 1: first 2+ 
 	//params.levels ~= Parameters.Level(1.4361, 4); // 2: first 4+ 
 	//params.levels ~= Parameters.Level(15.2, 1); // 2: first 4+ at 1.0 MeV (8 is half spin: 8/2 = l = 4)
 	// transitions (only electrical ones so far)
-	params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(61.8)); // E2 transition from ground to 2+1 state 
+	//params.matrix_elements ~= Parameters.MatrixElement(0,1, 2, complex(61.8)); // E2 transition from ground to 2+1 state 
 	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, complex(113.6)); // E2 transition from 4+1 to 2+1 state 
 
 	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, complex(61.8)); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,1, 1, 17.5); // E2 transition from ground to 2+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(0,2, 2, 50);  // E2 transition from ground to 4+1 state with 100 e fm^2
 	//params.matrix_elements ~= Parameters.MatrixElement(1,2, 2, 55.3);  // E2 transition from    2+1 to 4+1 state with 100 e fm^2
-	params.preprocess_transitions();
+
+	double[] levelsE;
+	double[] levelsI;
+
+	int[]    ME_from_indices;
+	int[]    ME_to_indices;
+	int[]    ME_lambdas;
+	double[] ME_values;
 
 
 	getopt(args,
-			"Ap",        &params.Ap,
-			"Zp",        &params.Zp,
-			"b",         &params.bp,
-			"beta",      &params.betap,
-			"E",         &params.Ep,
-			"At",        &params.At,
-			"Zt",        &params.Zt,
-			"CM",        &params.CM,
-			"rotate",    &params.rotate,
-			"method",    &params.method,
-			"accuracy",  &params.accuracy,
-			"timeframe", &params.timeframe,
-			"compare-rutherford", &params.compare_rutherford,
+			"Ap",        &params.Ap,                // mass number of projectile
+			"Zp",        &params.Zp,                // atomic number of projectile
+			"b",         &params.bp,                // impact parameter
+			"beta",      &params.betap,             // velocity (specify this OR the kinetic energy)
+			"E",         &params.Ep,                // kinetic energy (specify this OR the velocity)
+			"At",        &params.At,                // mass number of target
+			"Zt",        &params.Zt,                // atomic number of target
+			"levelE",    &levelsE,                  // add a level with given energy
+			"levelI",    &levelsI,                  // add a level with given spin
+			"MEfrom",    &ME_from_indices,          // add a reduced matrix element with given from index (into the level array)
+			"MEto"  ,    &ME_to_indices,            // add a reduced matrix element with given to   index (into the level array)
+			"MElambda",  &ME_lambdas,               // add a reduced matrix element with given lambda
+			"MEvalue",   &ME_values,                // add a reduced matrix element with given value in units of [e fm^lambda]
+			"CM",        &params.CM,                // if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation
+			"rotate",    &params.rotate,            // rotate the resulting trajectories
+			"method",    &params.method,            // methods are "relativistic" "classical" "magnetic" (only relativistic makes sense)
+			"accuracy",  &params.accuracy,          // accuracy in the trajectory integration
+			"timeframe", &params.timeframe,         // simulation is started at -timeframe (in units of [zs] = zeptoseconds)
+			"compare-rutherford", &params.compare_rutherford,  
 			"compare-rutherford-w", &params.compare_rutherford_w,
 			"compare-rutherford-N", &params.compare_rutherford_N,
 			"compare-SL-field", &params.compare_SL_field
 			);
+
+	// get the level information
+	if (levelsE.length != levelsI.length)
+	{
+		writeln("ERROR: need same number of --levelE=... and levelI=... arguments");
+		return;
+	}
+	foreach (n;0..levelsE.length)
+	{
+		params.levels ~= Parameters.Level(levelsE[n],levelsI[n]);
+	}
+
+	// get the transitions
+	if (ME_from_indices.length != ME_to_indices .length ||
+		ME_from_indices.length != ME_lambdas .length    ||
+		ME_from_indices.length != ME_values.length  )
+	{
+		writeln("ERROR: need same number of --MEfrom=... , --MEto=... , --MElambda=... , --MEvalue=... arguments");
+		return;
+	}
+	foreach (n; 0..ME_from_indices.length)
+	{
+		params.matrix_elements ~= Parameters.MatrixElement(ME_from_indices[n], ME_to_indices[n], ME_lambdas[n], complex(ME_values[n]));
+	}
+
+	// preprocess transitions to be in a more useful form for the computation
+	params.preprocess_transitions();
 	
 	if (isNaN(params.betap) && !isNaN(params.Ep))
 	{
