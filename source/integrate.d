@@ -31,6 +31,7 @@ void integrate(ode, type)(ode func,
 							type T, 
 							ref Parameters params)
 {
+	params.clear();
 	// setup the system
 	auto system = gsl_odeiv2_system(func,   null, 10, cast(void*)&params);
 

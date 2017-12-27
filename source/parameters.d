@@ -18,6 +18,11 @@
 
 
 import types;
+import integrate;
+import nonrelat_dynamics;
+import relat_dynamics;
+import gsl.gsl_odeiv2;
+import gsl.gsl_errno;
 
 enum IntegrationMethod { classical, magnetic, relativistic };
 
@@ -29,6 +34,7 @@ struct Parameters
 	double Zt;
 	double Ep;
 	double betap;
+	double d_min; // requested distance of closest approach if this is set, the program chooses bp such that betap_min will just be hit
 	double bp;
 	
 	real timeframe = 1000000; // integrate the equations of motion from -timeframe to +timeframe
@@ -168,6 +174,27 @@ struct Parameters
 			writeln("lambda",i,"=",lambda);
 		}
 	}
+	void integrate_trajectory()
+	{
+		final switch(method)
+		{
+			case IntegrationMethod.classical:
+				integrate.integrate(&ode_classsical, gsl_odeiv2_step_rkf45, this);
+			break;
+			case IntegrationMethod.magnetic:
+				integrate.integrate(&ode_magnetic, gsl_odeiv2_step_rkf45, this);
+			break;
+			case IntegrationMethod.relativistic:
+				integrate.integrate(&ode_relativistic, gsl_odeiv2_step_rkf45, this);
+			break;
+		}
+	}
+	void clear()
+	{
+		h1.clear();
+		h2.clear();
+	}
+
 }
 
 struct Spline
@@ -254,6 +281,17 @@ struct History // This could also be called "Trajectory", but since it is used t
 	}
 	Field[] fields;
 	
+	void clear()
+	{
+		fields.length = 0;
+		points.length = 0;
+		points_partner_ret.length = 0;
+		last_t_ret = real.nan;
+		last_index_high = 0;
+		last_index_low = 0;
+		n_hit = n_miss = n_all_lookups = n_direct_shortcut = n_shortcut = 0;
+	}
+
 	// add a point into the history
 	void add(real t, Vec2 x, Vec2 v, Vec2 a, 
 			 real tau, Vec2 e, real b, Vec3 pot)
