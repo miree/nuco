@@ -229,8 +229,8 @@ struct History // This could also be called "Trajectory", but since it is used t
 	real last_t_ret;
 	
 	// helper value to remember the index of the where the last history lookup.
-	uint last_index_low;
-	uint last_index_high;
+	ulong last_index_low;
+	ulong last_index_high;
 	
 	int n_hit, n_miss, n_all_lookups, n_direct_shortcut, n_shortcut;
 
@@ -350,8 +350,8 @@ struct History // This could also be called "Trajectory", but since it is used t
 		if (!(pa.t < t && pb.t > t))
 		{
 			++n_all_lookups;
-			uint index_low  = 0;
-			uint index_high = points.length-1;
+			ulong index_low  = 0;
+			ulong index_high = points.length-1;
 			// try to see if expanding the interval by 1 works (a small optimization)
 			if (last_index_low != 0 && last_index_high != points.length)
 			{
@@ -371,7 +371,7 @@ struct History // This could also be called "Trajectory", but since it is used t
 			while(index_high - index_low > 1)
 			{
 				++n_lookup;
-				uint index_mid = (index_high + index_low)/2;
+				ulong index_mid = (index_high + index_low)/2;
 				real t_mid   = points[index_mid].t;
 				
 				if (t_mid > t)
