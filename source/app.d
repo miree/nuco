@@ -164,24 +164,7 @@ void main(string[] args)
 		return;
 	}
 	
-	// summarize all parameters for the user
-	writeln("parameter summary:");
-	writeln("   Ap    = ", params.Ap, " ");
-	writeln("   Zp    = ", params.Zp, " ");
-	writeln("   bp    = ", params.bp, " fm");
-	writeln("   betap = ", params.betap, " ");
-	writeln("   Ep    = ", params.Ep, " MeV/u");
-	writeln("   At    = ", params.At, " ");
-	writeln("   Zt    = ", params.Zt, " ");
-	if (params.CM)
-	{
-		writeln("calculation is done in center-of-mass system");
-	}
-	else
-	{
-		writeln("calculation is done in laboratory system");
-	}
-	
+
 
 	if (!isNaN(params.d_min))
 	{
@@ -219,6 +202,25 @@ void main(string[] args)
 	{
 		params.integrate_trajectory();
 	}
+
+	// summarize all parameters for the user
+	writeln("parameter summary:");
+	writeln("   Ap    = ", params.Ap, " ");
+	writeln("   Zp    = ", params.Zp, " ");
+	writeln("   bp    = ", params.bp, " fm");
+	writeln("   betap = ", params.betap, " ");
+	writeln("   Ep    = ", params.Ep, " MeV/u");
+	writeln("   At    = ", params.At, " ");
+	writeln("   Zt    = ", params.Zt, " ");
+	if (params.CM)
+	{
+		writeln("calculation is done in center-of-mass system");
+	}
+	else
+	{
+		writeln("calculation is done in laboratory system");
+	}
+	
 
 	writeln("distance of closest approach: d_min=" , params.dmin , " fm    at   t_min=", params.t0 , " zs");
 
