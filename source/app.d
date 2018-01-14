@@ -94,7 +94,8 @@ void main(string[] args)
 			"compare-rutherford", &params.compare_rutherford,  
 			"compare-rutherford-w", &params.compare_rutherford_w,
 			"compare-rutherford-N", &params.compare_rutherford_N,
-			"compare-SL-field", &params.compare_SL_field
+			"compare-SL-field", &params.compare_SL_field,
+			"calc-cross-section", &params.calc_cross_section
 			);
 
 	// get the level information
@@ -197,6 +198,30 @@ void main(string[] args)
 			// here, we know that we are too fast and have to look for the correct impact parameter
 
 		}
+
+		// calculate the coulex cross section integral (equation 3.48 in thesis)
+		writeln("params.calc_cross_section = ", params.calc_cross_section);
+		if (params.calc_cross_section)
+		{
+			double t_step = 0.05;
+			double b_min = params.bp;
+			params.debug_on = false;
+
+			for (double t = 1; t > 0; t -= t_step)
+			{
+				double b = b_min+(1-t^^2)/t^^2;
+				write(b);
+				params.bp = b;
+				params.integrate_trajectory();
+
+				double sum = 0;
+
+				integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+				foreach(idx,amp;params.amplitudes) if (idx > 0) sum += abs(amp.a)^^2;
+
+				writeln("  ", sum*b);
+			}
+		}
 	}
 	//else
 	{
@@ -264,8 +289,8 @@ void main(string[] args)
 
 
 
-	//params.debug_on = false;
-	//integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+	params.debug_on = false;
+	integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
 
 	//import nucd.em;
 	//foreach(Mr;-2..3)
@@ -291,8 +316,8 @@ void main(string[] args)
 	//}
 
 	//// output for automatic data capture
-	//write("xxx:");
-	//write(params.Ep, " ");
-	//foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
-	//writeln();
+	write("xxx:");
+	write(params.Ep, " ");
+	foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
+	writeln();
 }

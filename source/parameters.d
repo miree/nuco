@@ -56,6 +56,8 @@ struct Parameters
 	
 	bool compare_SL_field = false; // compare the EM field with the prediction of the straight-line approximation
 
+	bool calc_cross_section = false;
+
 	IntegrationMethod method;
 	double accuracy = 1e-5; // integration accuracy
 	double excitation_accuracy = 1e-6;
