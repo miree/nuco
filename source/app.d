@@ -198,30 +198,6 @@ void main(string[] args)
 			// here, we know that we are too fast and have to look for the correct impact parameter
 
 		}
-
-		// calculate the coulex cross section integral (equation 3.48 in thesis)
-		writeln("params.calc_cross_section = ", params.calc_cross_section);
-		if (params.calc_cross_section)
-		{
-			double t_step = 0.05;
-			double b_min = params.bp;
-			params.debug_on = false;
-
-			for (double t = 1; t > 0; t -= t_step)
-			{
-				double b = b_min+(1-t^^2)/t^^2;
-				write(b);
-				params.bp = b;
-				params.integrate_trajectory();
-
-				double sum = 0;
-
-				integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
-				foreach(idx,amp;params.amplitudes) if (idx > 0) sum += abs(amp.a)^^2;
-
-				writeln("  ", sum*b);
-			}
-		}
 	}
 	//else
 	{
@@ -250,6 +226,54 @@ void main(string[] args)
 	writeln("distance of closest approach: d_min=" , params.dmin , " fm    at   t_min=", params.t0 , " zs");
 
 	output_result.output_result(params);	
+
+	// calculate the coulex cross section integral (equation 3.48 in thesis)
+	writeln("params.calc_cross_section = ", params.calc_cross_section);
+	if (params.calc_cross_section)
+	{
+		double b_min = params.bp;
+		params.debug_on = false;
+
+		double sum_old = 0;
+		double b_old;
+
+		double integral = 0;
+		//double integral_lin = 0;
+		int n_step = 20;
+		for (int n = 0; n < n_step; ++n)
+		{
+			double t = 1.0*(n_step-n)/n_step;
+			double b = b_min+(1-t^^2)/t^^2;
+			write(b);
+			params.bp = b;
+			params.integrate_trajectory();
+
+			double sum = 0;
+
+			integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+			foreach(idx,amp;params.amplitudes) if (idx > 0) sum += abs(amp.a)^^2;
+
+			writeln("  ", sum*b);
+
+			if (t != 1) // approximat last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
+			{
+				double u0 = sum_old*b_old;
+				double u1 = sum*b;
+				double Cb = log(u0/u1) / log(b/b_old);
+				double Ca = u0*b_old^^Cb;
+				double Cc = 1-Cb;
+
+				//writeln("a=",Ca, "b=",Cb);
+				integral     += (Ca/Cc)*(b^^Cc - b_old^^Cc);
+				//integral_lin += 0.5*(u0+u1)*(b-b_old);
+			}
+			b_old   = b;
+			sum_old = sum;
+		}
+		writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
+		//writeln("integral_lin = " , integral_lin);
+	}
+
 
 	//import relat_dynamics;
 	//writeln("multipols at projectile position");
