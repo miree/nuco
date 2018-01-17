@@ -229,15 +229,24 @@ void main(string[] args)
 
 	// calculate the coulex cross section integral (equation 3.48 in thesis)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
+	double[] sum_level = new double[](params.levels.length);
+	double[] sum_level_old = new double[](params.levels.length); 
+	double[] integral_level = new double[](params.levels.length); 
+	foreach(ulong level; 0..params.levels.length) 
+	{
+		sum_level[level] = 0;
+		sum_level_old[level] = 0;
+		integral_level[level] = 0;
+	}
 	if (params.calc_cross_section)
 	{
 		double b_min = params.bp;
 		params.debug_on = false;
 
-		double sum_old = 0;
+		//double sum_old = 0;
 		double b_old;
 
-		double integral = 0;
+		//double integral = 0;
 		//double integral_lin = 0;
 		int n_step = 20;
 		for (int n = 0; n < n_step; ++n)
@@ -249,28 +258,52 @@ void main(string[] args)
 			params.integrate_trajectory();
 
 			double sum = 0;
-
+			foreach(ulong level; 0..params.levels.length) 	{	sum_level[level] = 0;	}
 			integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
-			foreach(idx,amp;params.amplitudes) if (idx > 0) sum += abs(amp.a)^^2;
+			foreach(idx,amp;params.amplitudes) 
+			{
+				//writeln("sum_level[", amp.level_index, "] = ", sum_level[amp.level_index]);
+				sum_level[amp.level_index] += abs(amp.a)^^2;
+				if (idx > 0) sum += abs(amp.a)^^2;
+			}
 
 			writeln("  ", sum*b);
-
-			if (t != 1) // approximat last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
+			if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
 			{
-				double u0 = sum_old*b_old;
-				double u1 = sum*b;
-				double Cb = log(u0/u1) / log(b/b_old);
-				double Ca = u0*b_old^^Cb;
-				double Cc = 1-Cb;
+				//double u0 = sum_old*b_old;
+				//double u1 = sum*b;
+				//double Cb = log(u0/u1) / log(b/b_old);
+				//double Ca = u0*b_old^^Cb;
+				//double Cc = 1-Cb;
 
 				//writeln("a=",Ca, "b=",Cb);
-				integral     += (Ca/Cc)*(b^^Cc - b_old^^Cc);
+				//integral     += (Ca/Cc)*(b^^Cc - b_old^^Cc);
 				//integral_lin += 0.5*(u0+u1)*(b-b_old);
+				foreach(ulong level; 0..params.levels.length)
+				{
+
+					double u0_ = sum_level_old[level]*b_old;
+					double u1_ = sum_level[level]*b;
+					double Cb_ = log(u0_/u1_) / log(b/b_old);
+					double Ca_ = u0_*b_old^^Cb_;
+					double Cc_ = 1-Cb_;
+
+					//writeln("a=",Ca, "b=",Cb);
+					integral_level[level] += (Ca_/Cc_)*(b^^Cc_ - b_old^^Cc_);
+					assert(integral_level[level] > 0);
+				}
 			}
 			b_old   = b;
-			sum_old = sum;
+			//sum_old = sum;
+			sum_level_old[] = sum_level[];
+
 		}
-		writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
+
+		foreach(ulong level; 0..params.levels.length)
+		{
+			writeln("cross-section[", level, "] = ", 2*PI*integral_level[level], " fm^2 = ", 10*2*PI*integral_level[level], " mbarn" );	
+		}
+		//writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
 		//writeln("integral_lin = " , integral_lin);
 	}
 
