@@ -240,41 +240,44 @@ void main(string[] args)
 
 		double b_old;
 
-		int n_step = 20;
-		for (int n = 0; n < n_step; ++n)
+		int n_step = 100;
+		import std.parallelism;
+		Parameters[] params_parallel = new Parameters[](n_step);
+		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
-			double t = 1.0*(n_step-n)/n_step;
-			double b = b_min+(1-t^^2)/t^^2;
-			write(b);
-			params.bp = b;
-			params.integrate_trajectory();
+			params_p = params;
+			double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
+			double b = b_min+(1-t^^2)/t^^2;   // b is in the interval [bmin,\infinity]
+			//write(b);
+			params_p.bp = b;
+			params_p.integrate_trajectory();
 
 			double sum = 0;
 			sum_level[] = 0;
-			integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
-			foreach(idx,amp;params.amplitudes) 
+			integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params_p);
+			foreach(idx,amp;params_p.amplitudes) 
 			{
 				//writeln("sum_level[", amp.level_index, "] = ", sum_level[amp.level_index]);
 				sum_level[amp.level_index] += abs(amp.a)^^2;
 				if (idx > 0) sum += abs(amp.a)^^2;
 			}
 
-			writeln("  ", sum*b);
-			if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
-			{
-				foreach(ulong level; 0..params.levels.length)
-				{
+			writeln(b, "  ", sum*b);
+			//if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
+			//{
+			//	foreach(ulong level; 0..params_parallel[n].levels.length)
+			//	{
 
-					double u0_ = sum_level_old[level]*b_old;
-					double u1_ = sum_level[level]*b;
-					double Cb_ = log(u0_/u1_) / log(b/b_old);
-					double Ca_ = u0_*b_old^^Cb_;
-					double Cc_ = 1-Cb_;
+			//		double u0_ = sum_level_old[level]*b_old;
+			//		double u1_ = sum_level[level]*b;
+			//		double Cb_ = log(u0_/u1_) / log(b/b_old);
+			//		double Ca_ = u0_*b_old^^Cb_;
+			//		double Cc_ = 1-Cb_;
 
-					integral_level[level] += (Ca_/Cc_)*(b^^Cc_ - b_old^^Cc_);
-					assert(integral_level[level] > 0);
-				}
-			}
+			//		integral_level[level] += (Ca_/Cc_)*(b^^Cc_ - b_old^^Cc_);
+			//		assert(integral_level[level] > 0);
+			//	}
+			//}
 			b_old   = b;
 			//sum_old = sum;
 			sum_level_old[] = sum_level[];

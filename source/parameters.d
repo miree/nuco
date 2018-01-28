@@ -97,6 +97,9 @@ struct Parameters
 		int M; 
 		double E; // energy of the corresponding level
 		Transition[] transitions; // all transitions that connect this level
+		this(this) {
+			transitions = transitions.dup;
+		}
 	}
 	Amplitude[] amplitudes;
 	struct Transition
@@ -197,6 +200,14 @@ struct Parameters
 		h2.clear();
 	}
 
+	this(this)
+	{
+		amplitudes = amplitudes.dup;
+		lambdas    = lambdas.dup;
+		levels     = levels.dup;
+
+	}
+
 }
 
 struct Spline
@@ -226,6 +237,13 @@ struct Spline
 
 struct History // This could also be called "Trajectory", but since it is used to do position lookups at earlier times, the name "History" seems appropriate.
 {
+
+	this(this)
+	{
+		points = points.dup;
+		points_partner_ret = points_partner_ret.dup;
+		fields = fields.dup;
+	}
 	// helper value to accelerate the lookup of retarded time
 	// (it stores the result of the last calculated retarded time)
 	real last_t_ret;
