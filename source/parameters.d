@@ -37,6 +37,8 @@ struct Parameters
 	double d_min; // requested distance of closest approach if this is set, the program chooses bp such that betap_min will just be hit
 	double bp;
 	
+	double b_max = 200; // used for cross section integral calculation
+
 	real timeframe = 1000000; // integrate the equations of motion from -timeframe to +timeframe
 							  // this is given in units of zeptoseconds (the default is 1 ps)
 	

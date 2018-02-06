@@ -27,6 +27,8 @@ import std.math;
 import std.conv;
 import std.getopt;
 import std.complex;
+import std.range;
+import std.file;
 
 // local imports
 import types;
@@ -95,7 +97,8 @@ void main(string[] args)
 			"compare-rutherford-w", &params.compare_rutherford_w,
 			"compare-rutherford-N", &params.compare_rutherford_N,
 			"compare-SL-field", &params.compare_SL_field,
-			"calc-cross-section", &params.calc_cross_section
+			"calc-cross-section", &params.calc_cross_section,
+			"bmax" , &params.b_max
 			);
 
 	// get the level information
@@ -142,11 +145,11 @@ void main(string[] args)
 	
 	// check if all needed parameters are set (i.e. not NaN)
 	if (isNaN( params.Ap
-	          *params.Zp 
-	          *params.betap 
-	          *params.Ep 
-	          *params.At 
-		      *params.Zt))
+			  *params.Zp 
+			  *params.betap 
+			  *params.Ep 
+			  *params.At 
+			  *params.Zt))
 	{
 		stderr.writeln("ERROR: Not all parameters defined 1");
 		help(args[0]);
@@ -229,38 +232,50 @@ void main(string[] args)
 
 	// calculate the coulex cross section integral (equation 3.48 in thesis)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
-	double[] sum_level = new double[](params.levels.length);
-	double[] sum_level_old = new double[](params.levels.length); 
-	double[] integral_level = new double[](params.levels.length); 
-	sum_level[] = sum_level_old[] = integral_level[] = 0;
 	if (params.calc_cross_section)
 	{
+		int n_step = 24;
+		double[][] sum_level = new double[][](n_step, params.levels.length);
+		double[]   bs        = new double[]  (n_step);
+		//double[] sum_level_old = new double[](params.levels.length); 
+		//double[][] integral_level = new double[](n_steps, params.levels.length); 
+
 		double b_min = params.bp;
 		params.debug_on = false;
 
 		double b_old;
 
-		int n_step = 100;
 		import std.parallelism;
 		Parameters[] params_parallel = new Parameters[](n_step);
+		double b_exp  = 1.2;
+		double b_base = params.b_max / b_exp^^(n_step-1);
+		if (b_min > 1e-6)
+		{
+			b_base = b_min;
+			b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
+		}
+		writeln("b_base = ", b_base);
+		writeln("b_exp  = ", b_exp);
 		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
 			params_p = params;
 			double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
-			double b = b_min+(1-t^^2)/t^^2;   // b is in the interval [bmin,\infinity]
+			//double b = (b_min>0.1)?(b_min*1.2^^n):(0.1*1.2^^n);   // b is in the interval [bmin,\infinity]
+			double b = b_base*b_exp^^n;
 			//write(b);
 			params_p.bp = b;
 			params_p.integrate_trajectory();
 
 			double sum = 0;
-			sum_level[] = 0;
+			sum_level[n][] = 0;
 			integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params_p);
 			foreach(idx,amp;params_p.amplitudes) 
 			{
 				//writeln("sum_level[", amp.level_index, "] = ", sum_level[amp.level_index]);
-				sum_level[amp.level_index] += abs(amp.a)^^2;
+				sum_level[n][amp.level_index] += abs(amp.a)^^2;
 				if (idx > 0) sum += abs(amp.a)^^2;
 			}
+			bs[n] = b;
 
 			writeln(b, "  ", sum*b);
 			//if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
@@ -278,16 +293,23 @@ void main(string[] args)
 			//		assert(integral_level[level] > 0);
 			//	}
 			//}
-			b_old   = b;
+			//b_old   = b;
 			//sum_old = sum;
-			sum_level_old[] = sum_level[];
+			//sum_level_old[] = sum_level[];
 
 		}
 
-		foreach(ulong level; 0..params.levels.length)
+		auto f = File("curve.txt","w+");
+		foreach(b_and_sums ; zip(bs, sum_level))
 		{
-			writeln("cross-section[", level, "] = ", 2*PI*integral_level[level], " fm^2 = ", 10*2*PI*integral_level[level], " mbarn" );	
+			auto b    = b_and_sums[0];
+			auto sums = b_and_sums[1];
+			f.write(b, " ");
+			foreach(sum; sums) f.write(sum, " "); // this has to be multiplied by b before integrating
+			f.writeln();
 		}
+
+
 		//writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
 		//writeln("integral_lin = " , integral_lin);
 	}
@@ -363,3 +385,5 @@ void main(string[] args)
 	foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
 	writeln();
 }
+
+

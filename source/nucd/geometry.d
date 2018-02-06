@@ -162,8 +162,8 @@ struct Vector(uint dim, T = double)
 		if (op == "^^" && dim == 3)
 		{
 			Vector!(dim,T) result = [content[1]*rhs.content[2] - content[2]*rhs.content[1],
-			                         content[2]*rhs.content[0] - content[0]*rhs.content[2],
-			                         content[0]*rhs.content[1] - content[1]*rhs.content[0]];
+									 content[2]*rhs.content[0] - content[0]*rhs.content[2],
+									 content[0]*rhs.content[1] - content[1]*rhs.content[0]];
 			return result;
 		}
 		
@@ -435,8 +435,8 @@ struct Matrix(uint nrows, uint ncolumns, uint orientation = rowMajor, T = double
 			ref Matrix rotation(Tangle)(uint axis1, uint axis2, Tangle angle)
 			{
 				identity();
-				T cos_angle = cos(angle);
-				T sin_angle = sin(angle);
+				T cos_angle = cos(1.0*angle);
+				T sin_angle = sin(1.0*angle);
 				
 				access(axis1,axis1) = cos_angle;	access(axis1,axis2) = -sin_angle;
 				access(axis2,axis1) = sin_angle;	access(axis2,axis2) = cos_angle;   
@@ -853,11 +853,11 @@ T[N*(N-1)/2] kardanAngles(uint N, uint orientation = rowMajor, T = double)(Matri
 unittest
 {
 	Matrix!(3,4,rowMajor) mRM = Matrix!(3,4,rowMajor)([ 1, 2, 3, 4,
-											            5, 6, 7, 8,
-													    9,10,11,12]);
+														5, 6, 7, 8,
+														9,10,11,12]);
 	Matrix!(3,4,columnMajor) mCM = Matrix!(3,4,columnMajor)([ 1, 2, 3, 4,
-													          5, 6, 7, 8,
-													          9,10,11,12]);
+															  5, 6, 7, 8,
+															  9,10,11,12]);
 
 	auto m = mRM;
 	auto t = m.transpose();
@@ -878,11 +878,11 @@ unittest
 	
 	
 	Matrix!(2,4,columnMajor) M1 = ([ 1, 1, 1, 1,
-	                              2, 2, 2, 2,]);
+								  2, 2, 2, 2,]);
 	Matrix!(4,2,rowMajor) M2 = ([ 1, 2, 
-                                 1, 2,
-                                 1, 2, 
-                                 1, 2,]);
+								 1, 2,
+								 1, 2, 
+								 1, 2,]);
 	auto M1M2 = M1*M2;
 	M1M2.identity();
 	
@@ -897,14 +897,14 @@ unittest
 	Matrix!(3,3) rot1; rot1.rotation(1,2,0.5);
 	Matrix!(3,3) rot2; rot2.rotation(1,2,0.5);
 	Matrix!(3,3) rot3; rot3.rotation(1,2,1.0);
-	Matrix!(3,3) rot4 = rot1*rot2;
+	//Matrix!(3,3) rot4 = rot1*rot2;
 	
 	rot3.rotation_axis(Vector!3([0,0,1]));
-	rot4.rotation(0,1,1);
+	//rot4.rotation(0,1,1);
 	writeln("---");
 	rot3.print();
 	writeln("---");
-	rot4.print();
+	//rot4.print();
 	writeln("---");
 		
 	double[6] kardan = [0.1,0.2,0.3,0.4,0.5,0.6];
