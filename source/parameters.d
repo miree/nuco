@@ -375,7 +375,7 @@ struct History // This could also be called "Trajectory", but since it is used t
 			ulong index_low  = 0;
 			ulong index_high = points.length-1;
 			// try to see if expanding the interval by 1 works (a small optimization)
-			if (last_index_low != 0 && last_index_high != points.length)
+			if (last_index_low != 0 && last_index_high != points.length-1)
 			{
 				pa = &points[last_index_low-1];
 				pb = &points[last_index_high+1];

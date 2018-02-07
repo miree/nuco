@@ -230,6 +230,12 @@ void main(string[] args)
 
 	output_result.output_result(params);	
 
+
+	auto bs_ = [1.,2,3,4,5,6,7,8,9];
+	auto as_ = [10.,20,30,40,50,60,70,80,90];
+	cross_section_integrate_curve(bs_,as_);
+
+
 	// calculate the coulex cross section integral (equation 3.48 in thesis)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
 	if (params.calc_cross_section)
@@ -248,18 +254,21 @@ void main(string[] args)
 		import std.parallelism;
 		Parameters[] params_parallel = new Parameters[](n_step);
 		double b_exp  = 1.2;
-		double b_base = params.b_max / b_exp^^(n_step-1);
+		double b_base = params.b_max / b_exp^^(n_step/2-1);
+		b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
 		if (b_min > 1e-6)
 		{
+			writeln("b_min>1e-6");
 			b_base = b_min;
 			b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
 		}
+		writeln("b_min = ", b_min);
 		writeln("b_base = ", b_base);
 		writeln("b_exp  = ", b_exp);
 		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
 			params_p = params;
-			double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
+			//double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
 			//double b = (b_min>0.1)?(b_min*1.2^^n):(0.1*1.2^^n);   // b is in the interval [bmin,\infinity]
 			double b = b_base*b_exp^^n;
 			//write(b);
@@ -299,16 +308,23 @@ void main(string[] args)
 
 		}
 
+		// write sum of amplitudes to a file
 		auto f = File("curve.txt","w+");
-		foreach(b_and_sums ; zip(bs, sum_level))
-		{
-			auto b    = b_and_sums[0];
-			auto sums = b_and_sums[1];
-			f.write(b, " ");
-			foreach(sum; sums) f.write(sum, " "); // this has to be multiplied by b before integrating
+	
+		import std.algorithm;
+		//zip(bs,sum_level).each!(a => f.writeln(a[0], " ", a[1]));//, a[1].each!(b => f.write(b, " ")), f.writeln());
+		foreach(zs ; zip(bs, sum_level)) {
+			f.write(zs[0], " ");
+			foreach(sum; zs[1]) f.write(sum, " "); // this has to be multiplied by b before integrating
 			f.writeln();
 		}
 
+
+		foreach(i ; 0..params.levels.length) {
+			auto as = new double[](n_step);
+			foreach(j; 0..sum_level.length)  as[j] = sum_level[j][i];
+			cross_section_integrate_curve(bs,as);
+		}
 
 		//writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
 		//writeln("integral_lin = " , integral_lin);
@@ -386,4 +402,12 @@ void main(string[] args)
 	writeln();
 }
 
-
+void cross_section_integrate_curve(double[] bs, double[] as)
+{
+	assert(bs.length == as.length);
+	assert(bs.length > 1);
+	import std.algorithm;
+	writeln("-------");
+	zip(bs,as).each!(a => writeln(a[0]," ",a[0]*a[1]));
+	zip(bs[1..$],as[1..$]).each!(a => writeln(a[0]," ",a[0]*a[1]));
+}

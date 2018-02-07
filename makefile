@@ -67,7 +67,7 @@ SOURCES_TEST = \
 all: nuco test_integration #slcoulex
 
 nuco: $(SOURCES_NUCO)
-	ldc2 $(SOURCES_NUCO) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O -release -of=nuco
+	ldc2 $(SOURCES_NUCO) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O  -of=nuco
 
 test_integration: $(SOURCES_TEST)	
 	dmd $(SOURCES_TEST) $(SOURCES_GSL) `gsl-config --libs | sed 's/-/-L-/g'` -O -release -of=test_integration 
