@@ -21,6 +21,7 @@
 import std.stdio;
 import nucd.geometry;
 import nucd.kinematics;
+import nucd.em;
 import gsl.gsl_odeiv2;
 import gsl.gsl_errno;
 import std.math;
@@ -169,38 +170,26 @@ void main(string[] args)
 	}
 	
 
+	double grazing_b;
+	// calculate grazing angle
+	{
+		double dmin = params.d_min; // safe dmin parameter to override with sum of radii
+		params.d_min = R0(cast(int)params.Ap)+R0(cast(int)params.At);
+		calculate_b_from_dmin(params);
+		grazing_b = params.bp;
+		writeln("grazing impact parameter: ", grazing_b, " fm => dmin = ", params.dmin, " fm (= ", R0(cast(int)params.Ap), " fm + ", R0(cast(int)params.At), " fm )");
+		params.d_min = R0(cast(int)params.Ap)+R0(cast(int)params.At)+5;
+		calculate_b_from_dmin(params);
+		writeln("min. safe Coulex impact parameter: ", params.bp, " fm => dmin = ", params.dmin, " fm (= ", R0(cast(int)params.Ap), " fm + ", R0(cast(int)params.At), " fm + 5 fm )");
+
+		params.d_min = dmin;
+	}
+
 
 	if (!isNaN(params.d_min))
 	{
 		writeln("calculating impact parameter for distance of closest approach of ", params.d_min, " fm");
-		params.bp = 0;
-		params.integrate_trajectory();
-		if (params.dmin < params.d_min)
-		{
-			double b_min = 0;
-			double b_max = params.d_min;
-			do 
-			{
-				params.bp = 0.5*(b_min+b_max);
-				params.integrate_trajectory();
-				//write("bp = " , params.bp , "  -> dmin = ", params.dmin, " (d_min requested) = " , params.d_min, "        ::: ");
-				if (params.dmin > params.d_min)
-				{
-					b_max = params.bp;
-				}
-				else
-				{
-					b_min = params.bp;
-				}
-
-				//writeln("b_min = ", b_min, "     b_max = " , b_max);
-			}
-			while (b_max-b_min > 1e-8);
-			params.bp=0.5*(b_min+b_max);
-
-			// here, we know that we are too fast and have to look for the correct impact parameter
-
-		}
+		calculate_b_from_dmin(params);
 	}
 	//else
 	{
@@ -411,3 +400,30 @@ void cross_section_integrate_curve(double[] bs, double[] as)
 	zip(bs,as).each!(a => writeln(a[0]," ",a[0]*a[1]));
 	zip(bs[1..$],as[1..$]).each!(a => writeln(a[0]," ",a[0]*a[1]));
 }
+
+void calculate_b_from_dmin(ref Parameters params, double epsilon = 1e-8)
+{
+	params.bp = 0;
+	params.integrate_trajectory();
+	if (params.dmin < params.d_min)
+	{
+		double b_min = 0;
+		double b_max = params.d_min;
+		do 
+		{
+			params.bp = 0.5*(b_min+b_max);
+			params.integrate_trajectory();
+			if (params.dmin > params.d_min)
+			{
+				b_max = params.bp;
+			}
+			else
+			{
+				b_min = params.bp;
+			}
+		}
+		while (b_max-b_min > epsilon);
+		params.bp=0.5*(b_min+b_max);
+	}	
+}
+
