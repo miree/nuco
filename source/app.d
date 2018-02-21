@@ -174,6 +174,7 @@ void main(string[] args)
 	// calculate grazing angle
 	{
 		double dmin = params.d_min; // safe dmin parameter to override with sum of radii
+		double bp = params.bp;
 		params.d_min = R0(cast(int)params.Ap)+R0(cast(int)params.At);
 		calculate_b_from_dmin(params);
 		grazing_b = params.bp;
@@ -183,6 +184,7 @@ void main(string[] args)
 		writeln("min. safe Coulex impact parameter: ", params.bp, " fm => dmin = ", params.dmin, " fm (= ", R0(cast(int)params.Ap), " fm + ", R0(cast(int)params.At), " fm + 5 fm )");
 
 		params.d_min = dmin;
+		params.bp    = bp;
 	}
 
 
@@ -229,7 +231,7 @@ void main(string[] args)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
 	if (params.calc_cross_section)
 	{
-		int n_step = 24;
+		int n_step = 80;
 		double[][] sum_level = new double[][](n_step, params.levels.length);
 		double[]   bs        = new double[]  (n_step);
 		//double[] sum_level_old = new double[](params.levels.length); 
@@ -242,25 +244,54 @@ void main(string[] args)
 
 		import std.parallelism;
 		Parameters[] params_parallel = new Parameters[](n_step);
-		double b_exp  = 1.2;
-		double b_base = params.b_max / b_exp^^(n_step/2-1);
-		b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
-		if (b_min > 1e-6)
-		{
-			writeln("b_min>1e-6");
-			b_base = b_min;
-			b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
-		}
-		writeln("b_min = ", b_min);
-		writeln("b_base = ", b_base);
-		writeln("b_exp  = ", b_exp);
+		//double b_exp  = 1.2;
+		//double b_base = params.b_max / b_exp^^(n_step/2-1);
+		//b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
+		//if (b_min > 1e-6)
+		//{
+		//	writeln("b_min>1e-6");
+		//	b_base = b_min;
+		//	b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
+		//}
+		//writeln("b_min = ", b_min);
+		//writeln("b_base = ", b_base);
+		//writeln("b_exp  = ", b_exp);
+		writeln("b_grazing = ", grazing_b, "    b_min = ", b_min, "  .....  ", );
 		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
 			params_p = params;
 			//double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
 			//double b = (b_min>0.1)?(b_min*1.2^^n):(0.1*1.2^^n);   // b is in the interval [bmin,\infinity]
-			double b = b_base*b_exp^^n;
+
+			double b;
+			//if (grazing_b < 1e6)
+			//{
+			//	double b_mid = params.b_max/8;
+			//	if (n < n_step/2)
+			//	{
+			//		b = b_min+2*n*(b_mid-b_min)/n_step;
+			//	}
+			//	else
+			//	{
+			//		double B = (params.b_max/b_mid)^^(1./(n_step-n_step/2));
+			//		b = b_mid*B^^(n-n_step/2);
+			//	}			
+			//}
+			//else 
+			//{
+			//	if (n < n_step/2)
+			//	{
+			//		b = b_min+2*n*(2*grazing_b-b_min)/n_step;
+			//	}
+			//	else
+			//	{
+			//		double b_left = 2*grazing_b;
+			//		double B = (params.b_max/b_left)^^(1./(n_step-n_step/2));
+			//		b = b_left*B^^(n-n_step/2);
+			//	}
+			//}
 			//write(b);
+			b = b_min+n*(params.b_max-b_min)/n_step;
 			params_p.bp = b;
 			params_p.integrate_trajectory();
 
@@ -312,7 +343,7 @@ void main(string[] args)
 		foreach(i ; 0..params.levels.length) {
 			auto as = new double[](n_step);
 			foreach(j; 0..sum_level.length)  as[j] = sum_level[j][i];
-			cross_section_integrate_curve(bs,as);
+			writeln("level ", i, " cross section = ", cross_section_integrate_curve(bs,as)*2*PI, " fm^2  = ", cross_section_integrate_curve(bs,as)*10*2*PI, " mbarn");
 		}
 
 		//writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
@@ -391,14 +422,20 @@ void main(string[] args)
 	writeln();
 }
 
-void cross_section_integrate_curve(double[] bs, double[] as)
+double cross_section_integrate_curve(double[] bs, double[] as)
 {
 	assert(bs.length == as.length);
 	assert(bs.length > 1);
 	import std.algorithm;
-	writeln("-------");
-	zip(bs,as).each!(a => writeln(a[0]," ",a[0]*a[1]));
-	zip(bs[1..$],as[1..$]).each!(a => writeln(a[0]," ",a[0]*a[1]));
+	double sum = 0;
+	for (int i = 1; i < bs.length; ++i)
+	{
+		sum += (bs[i]-bs[i-1])*(bs[i]*as[i]+bs[i-1]*as[i-1])/2;
+	}
+	//writeln("-------");
+	//zip(bs,as).each!(a => writeln(a[0]," ",a[0]*a[1]));
+	//zip(bs[1..$],as[1..$]).each!(a => writeln(a[0]," ",a[0]*a[1]));
+	return sum;
 }
 
 void calculate_b_from_dmin(ref Parameters params, double epsilon = 1e-8)

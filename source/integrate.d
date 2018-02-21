@@ -214,12 +214,12 @@ void excite(ode, type)(ode func,
 											 &system, 
 											 &t, t2,
 											 &stp, ys.ptr);
-		if (stp < hs[cnt]) force_h = false;
+		if (cnt >= hs.length || stp < hs[cnt]) force_h = false;
 //		writeln("   -> t=",t, "  -> expected t=",told+h);
-		if (status != GSL_SUCCESS || t > 50) // nothing will happen 50zs after the collision
+		if (status != GSL_SUCCESS || t > 50 ) // nothing will happen 50zs after the collision
 			break;
 
-		myt += hs[cnt];
+		//myt += hs[cnt];
 		// call the function once more to get the acceleration and the EM-Fields at the advanced position.
 		// Not doing this implies that the last function call is at the desired position, which is (I believe)
 		// not guaranteed by the higher order integration procedures.
