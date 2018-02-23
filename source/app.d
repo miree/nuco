@@ -80,6 +80,7 @@ void main(string[] args)
 			"impact_parameter|b",  "impact parameter "                                                                                                 ,   &params.bp,                // impact parameter
 			"beta|v",              "velocity (specify this OR the kinetic energy) "                                                                    ,   &params.betap,             // velocity (specify this OR the kinetic energy)
 			"dmin|d",		       "distance of closest approach "                                                                                     ,   &params.d_min,             // distance of closest approach
+			"bmax|B" ,             "when calculating cross sections, trajectories will be calculated up to an impact parameter of bmax"                ,   &params.b_max,
 			"energy|e",            "kinetic energy (specify this OR the velocity) "                                                                    ,   &params.Ep,                // kinetic energy (specify this OR the velocity)
 			"At|A",                "mass number of target "                                                                                            ,   &params.At,                // mass number of target
 			"Zt|Z",                "atomic number of target "                                                                                          ,   &params.Zt,                // atomic number of target
@@ -91,22 +92,21 @@ void main(string[] args)
 			"MEvalue|x",           "add a reduced matrix element with given value in units of [e fm^lambda] "                                          ,   &ME_values,                // add a reduced matrix element with given value in units of [e fm^lambda]
 			"CM",                  "if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation ",   &params.CM,                // if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation
 			"rotate",              "rotate the resulting trajectories "                                                                                ,   &params.rotate,            // rotate the resulting trajectories
-			"method",              "methods are \"relativistic\" \"classical\" \"magnetic\" (only relativistic makes sense) "                                ,   &params.method,            // methods are "relativistic" "classical" "magnetic" (only relativistic makes sense)
+			"method",              "methods are \"relativistic\" \"classical\" \"magnetic\" (only relativistic makes sense) "                          ,   &params.method,            // methods are "relativistic" "classical" "magnetic" (only relativistic makes sense)
 			"accuracy",            "accuracy in the trajectory integration "                                                                           ,   &params.accuracy,          // accuracy in the trajectory integration
 			"timeframe",           "simulation is started at -timeframe (in units of [zs] = zeptoseconds) "                                            ,   &params.timeframe,         // simulation is started at -timeframe (in units of [zs] = zeptoseconds)
 			"compare-rutherford",  " ",        &params.compare_rutherford,  
 			"compare-rutherford-w"," ",        &params.compare_rutherford_w,
 			"compare-rutherford-N"," ",        &params.compare_rutherford_N,
 			"compare-SL-field",    " ",        &params.compare_SL_field,
-			"calc-cross-section",  " ",        &params.calc_cross_section,
-			"bmax|B" ,             " ",        &params.b_max
+			"calc-cross-section",  "giving this will calculate the cross section based on trajectories between b and bmax"                             ,  &params.calc_cross_section
 			);
 
-	if (rslt.helpWanted)
-	{
-		defaultGetoptPrinter("nuco - nuclear collision. ", rslt.options);
-		return;
-	}
+	//if (rslt.helpWanted || args.length == 1)
+	//{
+	//	defaultGetoptPrinter("nuco - nuclear collision. \n\nexample usage: " ~ args[0] ~ "  --Ap=85 --Zp=35 --At=197 --Zt=79 --E=10 --levelE=0 --levelI=0 --levelE=.6166 --levelI=2 --MEfrom=0 --MEto=1 --MElambda=2 --MEvalue=61.8 --method=relativistic --accuracy=1e-7 --b=10\n\n arguments:"  , rslt.options);
+	//	return;
+	//}
 
 	// get the level information
 	if (levelsE.length != levelsI.length)
@@ -228,16 +228,16 @@ void main(string[] args)
 	output_result.output_result(params);	
 
 
-	auto bs_ = [1.,2,3,4,5,6,7,8,9];
-	auto as_ = [10.,20,30,40,50,60,70,80,90];
-	cross_section_integrate_curve(bs_,as_);
+	//auto bs_ = [1.,2,3,4,5,6,7,8,9];
+	//auto as_ = [10.,20,30,40,50,60,70,80,90];
+	//cross_section_integrate_curve(bs_,as_);
 
 
 	// calculate the coulex cross section integral (equation 3.48 in thesis)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
 	if (params.calc_cross_section)
 	{
-		int n_step = 80;
+		int n_step = 40;
 		double[][] sum_level = new double[][](n_step, params.levels.length);
 		double[]   bs        = new double[]  (n_step);
 		//double[] sum_level_old = new double[](params.levels.length); 
@@ -312,7 +312,7 @@ void main(string[] args)
 			}
 			bs[n] = b;
 
-			writeln(b, "  ", sum*b);
+			//writeln(b, "  ", sum*b);
 			//if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
 			//{
 			//	foreach(ulong level; 0..params_parallel[n].levels.length)
@@ -428,16 +428,45 @@ void main(string[] args)
 	writeln();
 }
 
-double cross_section_integrate_curve(double[] bs, double[] as)
+double cross_section_integrate_curve(double[] bs1, double[] as1)
 {
+	auto bs = bs1.dup;
+	auto as = as1.dup;
+
+	import gsl.gsl_errno;
+	import gsl.gsl_spline;
+
 	assert(bs.length == as.length);
 	assert(bs.length > 1);
+
+	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+	scope(exit) gsl_interp_accel_free(acc);
+    gsl_spline *spline  = gsl_spline_alloc (gsl_interp_cspline, bs.length);
+    scope(exit) gsl_spline_free(spline);
+
+    for(int i =0; i < as.length; ++i) { as[i] = log(as[i]); }
+    gsl_spline_init(spline, bs.ptr, as.ptr, bs.length);
+
 	import std.algorithm;
 	double sum = 0;
-	for (int i = 1; i < bs.length; ++i)
+
+	auto f = File("curve_int.txt","w+");
+
+
+	double db = 0.001;
+	for (double b = bs[0]; b <= bs[bs.length-1]-1.5*db; b += db)
 	{
-		sum += (bs[i]-bs[i-1])*(bs[i]*as[i]+bs[i-1]*as[i-1])/2;
+		double b0 = b;
+		double b1 = b+db;
+		double a0 = exp(gsl_spline_eval(spline, b, acc));
+		double a1 = exp(gsl_spline_eval(spline, b+db, acc));
+		sum += (b1-b0)*(b1*a1+b0*a0)/2;
 	}
+
+	//for (int i = 1; i < bs.length; ++i)
+	//{
+	//	sum += (bs[i]-bs[i-1])*(bs[i]*as[i]+bs[i-1]*as[i-1])/2;
+	//}
 	//writeln("-------");
 	//zip(bs,as).each!(a => writeln(a[0]," ",a[0]*a[1]));
 	//zip(bs[1..$],as[1..$]).each!(a => writeln(a[0]," ",a[0]*a[1]));
