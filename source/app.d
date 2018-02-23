@@ -73,6 +73,7 @@ void main(string[] args)
 	int[]    ME_lambdas;
 	double[] ME_values;
 
+	auto arglength = args.length;
 
 	auto rslt = getopt(args,
 			"Ap|a",                "mass number of projectile "                                                                                        ,   &params.Ap,                // mass number of projectile
@@ -103,11 +104,11 @@ void main(string[] args)
 			"cross-section-integral-steps", " number of different trajectories between bmin and bmax" , &params.cross_section_integral_steps
 			);
 
-	//if (rslt.helpWanted || args.length == 1)
-	//{
-	//	defaultGetoptPrinter("nuco - nuclear collision. \n\nexample usage: " ~ args[0] ~ "  --Ap=85 --Zp=35 --At=197 --Zt=79 --E=10 --levelE=0 --levelI=0 --levelE=.6166 --levelI=2 --MEfrom=0 --MEto=1 --MElambda=2 --MEvalue=61.8 --method=relativistic --accuracy=1e-7 --b=10\n\n arguments:"  , rslt.options);
-	//	return;
-	//}
+	if (rslt.helpWanted || (arglength == 1))
+	{
+		defaultGetoptPrinter("nuco - nuclear collision. \n\nexample usage: " ~ args[0] ~ "  --Ap=85 --Zp=35 --At=197 --Zt=79 --E=10 --levelE=0 --levelI=0 --levelE=.6166 --levelI=2 --MEfrom=0 --MEto=1 --MElambda=2 --MEvalue=61.8 --method=relativistic --accuracy=1e-7 --b=10\n\n arguments:"  , rslt.options);
+		return;
+	}
 
 	// get the level information
 	if (levelsE.length != levelsI.length)
