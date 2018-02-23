@@ -99,7 +99,8 @@ void main(string[] args)
 			"compare-rutherford-w"," ",        &params.compare_rutherford_w,
 			"compare-rutherford-N"," ",        &params.compare_rutherford_N,
 			"compare-SL-field",    " ",        &params.compare_SL_field,
-			"calc-cross-section",  "giving this will calculate the cross section based on trajectories between b and bmax"                             ,  &params.calc_cross_section
+			"calc-cross-section",  "giving this will calculate the cross section based on trajectories between b and bmax"                             ,  &params.calc_cross_section,
+			"cross-section-integral-steps", " number of different trajectories between bmin and bmax" , &params.cross_section_integral_steps
 			);
 
 	//if (rslt.helpWanted || args.length == 1)
@@ -237,7 +238,7 @@ void main(string[] args)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
 	if (params.calc_cross_section)
 	{
-		int n_step = 40;
+		int n_step = params.cross_section_integral_steps;
 		double[][] sum_level = new double[][](n_step, params.levels.length);
 		double[]   bs        = new double[]  (n_step);
 		//double[] sum_level_old = new double[](params.levels.length); 
@@ -262,7 +263,8 @@ void main(string[] args)
 		//writeln("b_min = ", b_min);
 		//writeln("b_base = ", b_base);
 		//writeln("b_exp  = ", b_exp);
-		writeln("b_grazing = ", grazing_b, "    b_min = ", b_min, "  .....  ", );
+		writeln("b_grazing = ", grazing_b, "    b_min = ", b_min);
+		writeln("coulex integral in ", params.cross_section_integral_steps, " steps");
 		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
 			params_p = params;
@@ -312,6 +314,8 @@ void main(string[] args)
 			}
 			bs[n] = b;
 
+			write(".");
+			stdout.flush();
 			//writeln(b, "  ", sum*b);
 			//if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
 			//{
@@ -333,6 +337,7 @@ void main(string[] args)
 			//sum_level_old[] = sum_level[];
 
 		}
+		writeln();
 
 		// write sum of amplitudes to a file
 		auto f = File("curve.txt","w+");

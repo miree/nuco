@@ -59,6 +59,7 @@ struct Parameters
 	bool compare_SL_field = false; // compare the EM field with the prediction of the straight-line approximation
 
 	bool calc_cross_section = false;
+	int cross_section_integral_steps = 100;
 
 	IntegrationMethod method;
 	double accuracy = 1e-5; // integration accuracy
