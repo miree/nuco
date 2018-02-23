@@ -74,33 +74,39 @@ void main(string[] args)
 	double[] ME_values;
 
 
-	getopt(args,
-			"Ap",        &params.Ap,                // mass number of projectile
-			"Zp",        &params.Zp,                // atomic number of projectile
-			"b",         &params.bp,                // impact parameter
-			"beta",      &params.betap,             // velocity (specify this OR the kinetic energy)
-			"dmin",		 &params.d_min,             // distance of closest approach
-			"E",         &params.Ep,                // kinetic energy (specify this OR the velocity)
-			"At",        &params.At,                // mass number of target
-			"Zt",        &params.Zt,                // atomic number of target
-			"levelE",    &levelsE,                  // add a level with given energy
-			"levelI",    &levelsI,                  // add a level with given spin
-			"MEfrom",    &ME_from_indices,          // add a reduced matrix element with given from index (into the level array)
-			"MEto"  ,    &ME_to_indices,            // add a reduced matrix element with given to   index (into the level array)
-			"MElambda",  &ME_lambdas,               // add a reduced matrix element with given lambda
-			"MEvalue",   &ME_values,                // add a reduced matrix element with given value in units of [e fm^lambda]
-			"CM",        &params.CM,                // if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation
-			"rotate",    &params.rotate,            // rotate the resulting trajectories
-			"method",    &params.method,            // methods are "relativistic" "classical" "magnetic" (only relativistic makes sense)
-			"accuracy",  &params.accuracy,          // accuracy in the trajectory integration
-			"timeframe", &params.timeframe,         // simulation is started at -timeframe (in units of [zs] = zeptoseconds)
-			"compare-rutherford", &params.compare_rutherford,  
-			"compare-rutherford-w", &params.compare_rutherford_w,
-			"compare-rutherford-N", &params.compare_rutherford_N,
-			"compare-SL-field", &params.compare_SL_field,
-			"calc-cross-section", &params.calc_cross_section,
-			"bmax" , &params.b_max
+	auto rslt = getopt(args,
+			"Ap|a",                "mass number of projectile "                                                                                        ,   &params.Ap,                // mass number of projectile
+			"Zp|z",                "atomic number of projectile "                                                                                      ,   &params.Zp,                // atomic number of projectile
+			"impact_parameter|b",  "impact parameter "                                                                                                 ,   &params.bp,                // impact parameter
+			"beta|v",              "velocity (specify this OR the kinetic energy) "                                                                    ,   &params.betap,             // velocity (specify this OR the kinetic energy)
+			"dmin|d",		       "distance of closest approach "                                                                                     ,   &params.d_min,             // distance of closest approach
+			"energy|e",            "kinetic energy (specify this OR the velocity) "                                                                    ,   &params.Ep,                // kinetic energy (specify this OR the velocity)
+			"At|A",                "mass number of target "                                                                                            ,   &params.At,                // mass number of target
+			"Zt|Z",                "atomic number of target "                                                                                          ,   &params.Zt,                // atomic number of target
+			"levelE|E",            "add a level with given energy "                                                                                    ,   &levelsE,                  // add a level with given energy
+			"levelI|I",            "add a level with given spin "                                                                                      ,   &levelsI,                  // add a level with given spin
+			"MEfrom|m",            "add a reduced matrix element with given from index (into the level array) "                                        ,   &ME_from_indices,          // add a reduced matrix element with given from index (into the level array)
+			"MEto|M"  ,            "add a reduced matrix element with given to   index (into the level array) "                                        ,   &ME_to_indices,            // add a reduced matrix element with given to   index (into the level array)
+			"MElambda|l",          "add a reduced matrix element with given lambda "                                                                   ,   &ME_lambdas,               // add a reduced matrix element with given lambda
+			"MEvalue|x",           "add a reduced matrix element with given value in units of [e fm^lambda] "                                          ,   &ME_values,                // add a reduced matrix element with given value in units of [e fm^lambda]
+			"CM",                  "if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation ",   &params.CM,                // if this argument is given, initial velocities will be transformed into center of mass sytem before the simulation
+			"rotate",              "rotate the resulting trajectories "                                                                                ,   &params.rotate,            // rotate the resulting trajectories
+			"method",              "methods are \"relativistic\" \"classical\" \"magnetic\" (only relativistic makes sense) "                                ,   &params.method,            // methods are "relativistic" "classical" "magnetic" (only relativistic makes sense)
+			"accuracy",            "accuracy in the trajectory integration "                                                                           ,   &params.accuracy,          // accuracy in the trajectory integration
+			"timeframe",           "simulation is started at -timeframe (in units of [zs] = zeptoseconds) "                                            ,   &params.timeframe,         // simulation is started at -timeframe (in units of [zs] = zeptoseconds)
+			"compare-rutherford",  " ",        &params.compare_rutherford,  
+			"compare-rutherford-w"," ",        &params.compare_rutherford_w,
+			"compare-rutherford-N"," ",        &params.compare_rutherford_N,
+			"compare-SL-field",    " ",        &params.compare_SL_field,
+			"calc-cross-section",  " ",        &params.calc_cross_section,
+			"bmax|B" ,             " ",        &params.b_max
 			);
+
+	if (rslt.helpWanted)
+	{
+		defaultGetoptPrinter("nuco - nuclear collision. ", rslt.options);
+		return;
+	}
 
 	// get the level information
 	if (levelsE.length != levelsI.length)
