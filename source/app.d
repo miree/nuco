@@ -223,17 +223,11 @@ void main(string[] args)
 	{
 		writeln("calculation is done in laboratory system");
 	}
-	
 
 	writeln("distance of closest approach: d_min=" , params.dmin , " fm    at   t_min=", params.t0 , " zs");
 
+	// output some results of trajectory calculation
 	output_result.output_result(params);	
-
-
-	//auto bs_ = [1.,2,3,4,5,6,7,8,9];
-	//auto as_ = [10.,20,30,40,50,60,70,80,90];
-	//cross_section_integrate_curve(bs_,as_);
-
 
 	// calculate the coulex cross section integral (equation 3.48 in thesis)
 	writeln("params.calc_cross_section = ", params.calc_cross_section);
@@ -242,8 +236,6 @@ void main(string[] args)
 		int n_step = params.cross_section_integral_steps;
 		double[][] sum_level = new double[][](n_step, params.levels.length);
 		double[]   bs        = new double[]  (n_step);
-		//double[] sum_level_old = new double[](params.levels.length); 
-		//double[][] integral_level = new double[](n_steps, params.levels.length); 
 
 		double b_min = params.bp;
 		params.debug_on = false;
@@ -252,54 +244,13 @@ void main(string[] args)
 
 		import std.parallelism;
 		Parameters[] params_parallel = new Parameters[](n_step);
-		//double b_exp  = 1.2;
-		//double b_base = params.b_max / b_exp^^(n_step/2-1);
-		//b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
-		//if (b_min > 1e-6)
-		//{
-		//	writeln("b_min>1e-6");
-		//	b_base = b_min;
-		//	b_exp = (params.b_max/b_base)^^(1.0/(n_step-1));
-		//}
-		//writeln("b_min = ", b_min);
-		//writeln("b_base = ", b_base);
-		//writeln("b_exp  = ", b_exp);
 		writeln("b_grazing = ", grazing_b, "    b_min = ", b_min);
 		writeln("coulex integral in ", params.cross_section_integral_steps, " steps");
 		foreach (n, ref params_p; taskPool.parallel(params_parallel))
 		{
 			params_p = params;
-			//double t = 1.0*(n_step-n)/n_step; // t is a variable in the interval ]0,1]
-			//double b = (b_min>0.1)?(b_min*1.2^^n):(0.1*1.2^^n);   // b is in the interval [bmin,\infinity]
 
 			double b;
-			//if (grazing_b < 1e6)
-			//{
-			//	double b_mid = params.b_max/8;
-			//	if (n < n_step/2)
-			//	{
-			//		b = b_min+2*n*(b_mid-b_min)/n_step;
-			//	}
-			//	else
-			//	{
-			//		double B = (params.b_max/b_mid)^^(1./(n_step-n_step/2));
-			//		b = b_mid*B^^(n-n_step/2);
-			//	}			
-			//}
-			//else 
-			//{
-			//	if (n < n_step/2)
-			//	{
-			//		b = b_min+2*n*(2*grazing_b-b_min)/n_step;
-			//	}
-			//	else
-			//	{
-			//		double b_left = 2*grazing_b;
-			//		double B = (params.b_max/b_left)^^(1./(n_step-n_step/2));
-			//		b = b_left*B^^(n-n_step/2);
-			//	}
-			//}
-			//write(b);
 			b = b_min+n*(params.b_max-b_min)/n_step;
 			params_p.bp = b;
 			params_p.integrate_trajectory();
@@ -317,92 +268,36 @@ void main(string[] args)
 
 			write(".");
 			stdout.flush();
-			//writeln(b, "  ", sum*b);
-			//if (n != 0) // approximate last two points by an analytic function f(x)=Ca/x^Cb, and integrate that analytically
-			//{
-			//	foreach(ulong level; 0..params_parallel[n].levels.length)
-			//	{
-
-			//		double u0_ = sum_level_old[level]*b_old;
-			//		double u1_ = sum_level[level]*b;
-			//		double Cb_ = log(u0_/u1_) / log(b/b_old);
-			//		double Ca_ = u0_*b_old^^Cb_;
-			//		double Cc_ = 1-Cb_;
-
-			//		integral_level[level] += (Ca_/Cc_)*(b^^Cc_ - b_old^^Cc_);
-			//		assert(integral_level[level] > 0);
-			//	}
-			//}
-			//b_old   = b;
-			//sum_old = sum;
-			//sum_level_old[] = sum_level[];
 
 		}
 		writeln();
 
 		// write sum of amplitudes to a file
-		auto f = File("curve.txt","w+");
-	
+		auto f = File("squared_amplitudes.dat","w+");
 		import std.algorithm;
-		//zip(bs,sum_level).each!(a => f.writeln(a[0], " ", a[1]));//, a[1].each!(b => f.write(b, " ")), f.writeln());
 		foreach(zs ; zip(bs, sum_level)) {
 			f.write(zs[0], " ");
 			foreach(sum; zs[1]) f.write(sum, " "); // this has to be multiplied by b before integrating
 			f.writeln();
 		}
 
-
+		// accurately calculate the cross section integral
 		foreach(i ; 0..params.levels.length) {
 			auto as = new double[](n_step);
 			foreach(j; 0..sum_level.length)  as[j] = sum_level[j][i];
 			writeln("level ", i, " cross section = ", cross_section_integrate_curve(bs,as)*2*PI, " fm^2  = ", cross_section_integrate_curve(bs,as)*10*2*PI, " mbarn");
 		}
-
-		//writeln("integral     = " , 2*PI*integral, " fm^2 = ", 2*PI*integral*10, " mbarn");
-		//writeln("integral_lin = " , integral_lin);
 	}
 
-
-	//import relat_dynamics;
-	//writeln("multipols at projectile position");
-	//auto infofile = File("infofile.dat", "w+");	
-	//foreach(p; params.h1.points)
-	//{
-	//	real t = p.t;//params.t0;
-	//	int  l = 2;
-	//	Complex!double[int] Slm = projectile_S_lm(l, params, t);
-
-	//	infofile.write(t, " ", p.tau, " ");
-	//	foreach(m;-l..l+1)
-	//	{
-	//		infofile.write(Slm[m].abs, " " );
-	//	}		
-	//	infofile.writeln();
-
-	//}
-
-	//foreach(i;-5..6)
-	//{
-	//	writeln("(-1)^^",i,"=",(-1)^^i, " complex(0,1)^^",i,"=",complex(0,1)^^i);
-	//}
-
-	//import integrate;
-	//uint N = cast(uint)(2*params.amplitudes.length); // number of independent components: two components for each complex amplitude
-	//double[] dydts = new double[N];
-	//double[] ys    = new double[N];
-	//foreach(idx;0..N) 
-	//{
-	//	ys[idx]    = 0;
-	//	dydts[idx] = 0;
-	//}
-	//ys[0] = 1.0;  // initialy only ground state is occupied	
-	//params.debug_on = true;
-	//ode_excitation(0, ys.ptr, dydts.ptr, cast(void*)&params);
-
-
-
 	params.debug_on = false;
-	integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+	if (params.levels.length > 0)
+	{
+		integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
+		write("xxx:");
+		write(params.Ep, " ");
+		foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
+		writeln();	
+	}
 
 	//import nucd.em;
 	//foreach(Mr;-2..3)
@@ -427,11 +322,7 @@ void main(string[] args)
 	//	writeln(idx,":",amp.a,"    P_if=",abs(amp.a)^^2);
 	//}
 
-	//// output for automatic data capture
-	write("xxx:");
-	write(params.Ep, " ");
-	foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
-	writeln();
+
 }
 
 double cross_section_integrate_curve(double[] bs1, double[] as1)
