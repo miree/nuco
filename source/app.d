@@ -234,8 +234,10 @@ void main(string[] args)
 	if (params.calc_cross_section)
 	{
 		int n_step = params.cross_section_integral_steps;
-		double[][] sum_level = new double[][](n_step, params.levels.length);
-		double[]   bs        = new double[]  (n_step);
+		double[][] sum_level   = new double[][](n_step, params.levels.length);
+		double[]   bs          = new double[]  (n_step);
+		double[]   thetalabs   = new double[]  (n_step);
+		double[] dthetalab_dbs = new double[]  (n_step);
 
 		double b_min = params.bp;
 		params.debug_on = false;
@@ -250,10 +252,22 @@ void main(string[] args)
 		{
 			params_p = params;
 
-			double b;
-			b = b_min+n*(params.b_max-b_min)/n_step;
+			double b = b_min+n*(params.b_max-b_min)/n_step;
+			double b_plus_delta = b+1e-5;
+			double b_minus_delta = b-1e-5;
+
+			params_p.bp = b_plus_delta;
+			params_p.integrate_trajectory();
+			double thetalab_plus_delta = params_p.thetalab;
+			params_p.bp = b_minus_delta;
+			params_p.integrate_trajectory();
+			double thetalab_minus_delta = params_p.thetalab;
 			params_p.bp = b;
 			params_p.integrate_trajectory();
+
+			// save the scattering angle and the derivative of the scattering angle
+			thetalabs[n] = params_p.thetalab;
+			dthetalab_dbs[n] = (thetalab_plus_delta-thetalab_minus_delta)/(b_plus_delta-b_minus_delta);
 
 			double sum = 0;
 			sum_level[n][] = 0;
@@ -278,6 +292,19 @@ void main(string[] args)
 		foreach(zs ; zip(bs, sum_level)) {
 			f.write(zs[0], " ");
 			foreach(sum; zs[1]) f.write(sum, " "); // this has to be multiplied by b before integrating
+			f.writeln();
+		}
+
+		f = File("diff_xsec.dat","w+");
+		import std.algorithm;
+		f.writef("#%15s %15s %15s", "b", "thetalab", "dthetalab_db");
+		foreach(n; 0..params.levels.length) f.writef(" %20s %30s", "dsigma_db[" ~ to!string(n) ~ "]", "sin(theta)*dsigma_dOmega[" ~ to!string(n) ~ "]", );
+		f.writeln();
+		foreach(zs ; zip(bs, thetalabs, dthetalab_dbs, sum_level)) {
+			f.writef("%15s", zs[0]);
+			f.writef("%15s", zs[1]);
+			f.writef("%15s", zs[2]);
+			foreach(sum; zs[3]) f.writef("%20s %30s", 2*PI*zs[0]*sum, -zs[0]*sum*(1./zs[2])); // this has to be multiplied by b before integrating
 			f.writeln();
 		}
 

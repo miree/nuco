@@ -83,6 +83,7 @@ struct Parameters
 	History.Point p1_ret; // temporary storage for the retarded position of particle 1 as seen from particle 2
 	History.Point p2_ret; // temporary storage for the retarded position of particle 2 as seen from particle 1
 
+	real thetalab; // scattering angle in laboratory system;
 	real dmin;    // distance of closest approach
 	real t0;      // simultation time of closest approach
 	real p1_tau0; // proper time of particle 1 of closest approach

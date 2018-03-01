@@ -23,8 +23,8 @@ plot \
 	"squared_amplitudes.dat" using 1:3 lt 2 pt 7  notitle "2^+_1 state",
 set log y
 plot \
-	"squared_amplitudes.dat" using 1:3 lt 2 w l   title "2^+_1 state", \
-	"squared_amplitudes.dat" using 1:3 lt 2 pt 7  notitle ,
+	"squared_amplitudes.dat" using 1:($3*$1*2*pi) lt 2 w l   title "2^+_1 state", \
+	"squared_amplitudes.dat" using 1:($3*$1*2*pi) lt 2 pt 7  notitle ,
 unset multiplot 
 EOF
 gnuplot --persist visualize.gnuplot

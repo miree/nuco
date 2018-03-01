@@ -124,6 +124,8 @@ void integrate(ode, type)(ode func,
 
 	// do some post-processing
 
+	params.thetalab = atan2(params.h1.points[$-1].v[1],params.h1.points[$-1].v[0]);
+
 	// search distance of closest approach
 	real t0 = 0;
 	real dt = 100;
