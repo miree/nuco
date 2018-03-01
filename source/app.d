@@ -301,10 +301,13 @@ void main(string[] args)
 		foreach(n; 0..params.levels.length) f.writef(" %20s %30s", "dsigma_db[" ~ to!string(n) ~ "]", "sin(theta)*dsigma_dOmega[" ~ to!string(n) ~ "]", );
 		f.writeln();
 		foreach(zs ; zip(bs, thetalabs, dthetalab_dbs, sum_level)) {
-			f.writef("%15s", zs[0]);
-			f.writef("%15s", zs[1]);
-			f.writef("%15s", zs[2]);
-			foreach(sum; zs[3]) f.writef("%20s %30s", 2*PI*zs[0]*sum, -zs[0]*sum*(1./zs[2])); // this has to be multiplied by b before integrating
+			double b = zs[0];
+			double thetalab = zs[1];
+			double dthetalab_db = zs[2];
+			f.writef("%15s", b);
+			f.writef("%15s", thetalab);
+			f.writef("%15s", dthetalab_db);
+			foreach(sum; zs[3]) f.writef("%20s %30s", 2*PI*b*sum, -b*sum*(1./dthetalab_db)); // this has to be multiplied by b before integrating
 			f.writeln();
 		}
 
@@ -374,7 +377,7 @@ double cross_section_integrate_curve(double[] bs1, double[] as1)
 	import std.algorithm;
 	double sum = 0;
 
-	auto f = File("curve_int.txt","w+");
+	//auto f = File("curve_int.txt","w+");
 
 
 	double db = 0.001;
