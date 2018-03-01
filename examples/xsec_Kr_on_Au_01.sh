@@ -13,18 +13,25 @@ cat << EOF > visualize.gnuplot
 set xlabel "b [fm]"
 set ylabel "amplitude"
 set grid 
-set term wxt size 500,1000
+set term wxt size 600,1000
 set key top right box opaque spacing 1.5 width 1
-set multiplot layout 2,1
+set multiplot layout 3,1
 plot \
 	"squared_amplitudes.dat" using 1:2 lt 1 sm cs title "ground state", \
 	"squared_amplitudes.dat" using 1:3 lt 2 sm cs title "2^+_1 state",  \
 	"squared_amplitudes.dat" using 1:2 lt 1 pt 7  notitle "ground state", \
 	"squared_amplitudes.dat" using 1:3 lt 2 pt 7  notitle "2^+_1 state",
 set log y
+set ylabel "d sigma / d b [mb/fm]"
 plot \
-	"squared_amplitudes.dat" using 1:($3*$1*2*pi) lt 2 w l   title "2^+_1 state", \
-	"squared_amplitudes.dat" using 1:($3*$1*2*pi) lt 2 pt 7  notitle ,
+	"diff_xsec.dat" using 1:6 lt 2 w l   title "2^+_1 state", \
+	"diff_xsec.dat" using 1:6 lt 2 pt 7  notitle ,
+
+set xlabel "theta [fm]"
+set ylabel "d sigma / d Omega [mb/sr]"
+plot \
+	"diff_xsec.dat" using 2:7 lt 2 w l   title "2^+_1 state", \
+	"diff_xsec.dat" using 2:7 lt 2 pt 7  notitle ,
 unset multiplot 
 EOF
 gnuplot --persist visualize.gnuplot
