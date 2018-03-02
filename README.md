@@ -2,8 +2,8 @@
 Relativistic two-body open orbit simulation. Calculates electrical nuclear Coulomb excitation cross sections. Written in Dlang.
 
 # Requirements
-ldc compiler
-gsl library
+	*ldc compiler
+	*gsl library
 
 # Installation
 > git clone https://github.com/miree/nuco.git
