@@ -27,14 +27,14 @@ set ylabel "d sigma / d b [mb/fm]"
 unset key
 set log y
 plot \
-	"diff_xsec.dat" using 1:6 w l lt 2 lw 3 title "2^+_1 state", \
-	"diff_xsec.dat" using 1:8 w l lt 3 lw 3 title "4^+_1 state" ,
+	"diff_xsec.dat" using 1:8  w l lt 2 lw 3 title "2^+_1 state", \
+	"diff_xsec.dat" using 1:11 w l lt 3 lw 3 title "4^+_1 state" ,
 
-set xlabel "theta [fm]"
+set xlabel "theta [rad]"
 set ylabel "sin(theta) (d sigma / d Omega) [mb/sr]"
 plot \
-	"diff_xsec.dat" using 2:7 w l lt 2 lw 3 title "2^+_1 state", \
-	"diff_xsec.dat" using 2:9 w l lt 3 lw 3 title "4^+_1 state"  ,
+	"diff_xsec.dat" using 2:9 w l lt 2 lw 3 title "2^+_1 state", \
+	"diff_xsec.dat" using 2:12 w l lt 3 lw 3 title "4^+_1 state"  ,
 unset multiplot 
 EOF
 gnuplot --persist visualize.gnuplot

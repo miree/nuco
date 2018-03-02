@@ -298,8 +298,8 @@ void main(string[] args)
 		f = File("diff_xsec.dat","w+");
 		import std.algorithm;
 		f.writef("#%15s %15s %15s", "b", "thetalab", "dthetalab_db");
-		foreach(n; 0..params.levels.length) f.writef(" %20s %30s", "dsigma_db[" ~ to!string(n) ~ "]", "sin(theta)*dsigma_dOmega[" ~ to!string(n) ~ "]", );
-		f.writeln();
+		foreach(n; 0..params.levels.length) f.writef(" %20s %20s %30s", "amplitude^2[" ~ to!string(n) ~ "]", "dsigma_db[" ~ to!string(n) ~ "]", "sin(theta)*dsigma_dOmega[" ~ to!string(n) ~ "]", );
+		f.writeln("    AW_amplitude^2[1] AW_dsigma_db[1] AW_sin(theta)*dsigma_dOmega[1]");
 		foreach(zs ; zip(bs, thetalabs, dthetalab_dbs, sum_level)) {
 			double b = zs[0];
 			double thetalab = zs[1];
@@ -307,7 +307,27 @@ void main(string[] args)
 			f.writef("%15s", b);
 			f.writef("%15s", thetalab);
 			f.writef("%15s", dthetalab_db);
-			foreach(sum; zs[3]) f.writef("%20s %30s", 2*PI*b*sum, -b*sum*(1./dthetalab_db)); // this has to be multiplied by b before integrating
+			foreach(sum; zs[3]) f.writef("%20s %20s %30s ", sum, 2*PI*b*sum, -b*sum*(1./dthetalab_db)); // this has to be multiplied by b before integrating
+
+
+			double AlderWintherSum = 0;
+			for(int M = -cast(int)params.levels[1].L; M <= cast(int)params.levels[1].L; ++M)
+			{
+				auto aif = relativistic_coulex_excitation_amplitude(
+							Multipolarity(Multipolarity.Mode.E, params.matrix_elements[0].lambda),
+							0,0,
+							cast(int)params.levels[1].L, M,
+							abs(params.matrix_elements[0].ME), // e*fm^lambda
+							params.betap,
+							b,
+							params.levels[1].E, // MeV
+							params.Zp,
+							params.Ap,
+							params.Zt,
+							params.At);
+				AlderWintherSum += (aif.abs())^^2;
+			}
+			f.writef("%20s %20s %20s ", AlderWintherSum, 2*PI*b*AlderWintherSum, -b*AlderWintherSum*(1./dthetalab_db));
 			f.writeln();
 		}
 
