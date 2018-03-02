@@ -7,7 +7,9 @@ gsl library
 
 # Installation
 > git clone https://github.com/miree/nuco.git
+
 > cd nuco
+
 > make
 
 # Run
