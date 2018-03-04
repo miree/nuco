@@ -252,7 +252,20 @@ void main(string[] args)
 		{
 			params_p = params;
 
-			double b = b_min+n*(params.b_max-b_min)/n_step;
+			// compute reasonalble step size for impact parameter
+			double b;
+			{
+				import std.math;
+				double mu = u * params_p.Ap*params_p.At/(params_p.Ap+params_p.At);
+				double aa = params_p.Zp*params_p.Zt*alpha*hbar*c/(mu*params_p.betap*params_p.betap*c*c);
+				double theta_min = 2*atan2(aa,params_p.b_max);
+				double theta_max = 2*atan2(aa,b_min);
+
+				double theta = theta_max - n*(theta_max-theta_min)/n_step;
+				b = aa/tan(theta/2);
+			}
+
+			//b = b_min+n*(params.b_max-b_min)/n_step;
 			double b_plus_delta = b+1e-5;
 			double b_minus_delta = b-1e-5;
 
