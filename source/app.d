@@ -261,7 +261,7 @@ void main(string[] args)
 				double theta_min = 2*atan2(aa,params_p.b_max);
 				double theta_max = 2*atan2(aa,b_min);
 
-				double theta = theta_max - n*(theta_max-theta_min)/n_step;
+				double theta = theta_max - n*(theta_max-theta_min)/(n_step-1);
 				b = aa/tan(theta/2);
 			}
 
@@ -348,7 +348,21 @@ void main(string[] args)
 		foreach(i ; 0..params.levels.length) {
 			auto as = new double[](n_step);
 			foreach(j; 0..sum_level.length)  as[j] = sum_level[j][i];
-			writeln("level ", i, " cross section = ", cross_section_integrate_curve(bs,as)*2*PI, " fm^2  = ", cross_section_integrate_curve(bs,as)*10*2*PI, " mbarn");
+			write("level ", i, " cross section = ", cross_section_integrate_curve(bs,as)*2*PI, " fm^2  = ", cross_section_integrate_curve(bs,as)*10*2*PI, " mbarn");
+			if (i == 1) // give Alder/Winther Cross-section for the first excited state
+			{
+				double AWxsec = relativistic_coulex_cross_section(Multipolarity(Multipolarity.Mode.E, params.matrix_elements[0].lambda),  // multipolarity
+												 reducedTransitionStrength(abs(params.matrix_elements[0].ME), 2*cast(int)params.levels[0].L),            // reduced transition strength
+												 params.betap,         // velocity in units of c, i.e. v/c
+												 params.bp,            // impact parameter is approx. distance of closest approach
+												 params.levels[1].E,       // energy difference of initial and final level
+												 params.Zp,           // charge of excited nucleus
+												 params.Ap,           // mass number of excited nucleus
+												 params.Zt,           // charge of field providing nucleus
+												 params.At);           // mass number of field providing nucleus
+				write(" ;  (Alder/Winther straigh line) = ", AWxsec, " fm^2 = ", AWxsec*10, " mbarn");
+			}
+			writeln;
 		}
 	}
 

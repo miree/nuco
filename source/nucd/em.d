@@ -238,14 +238,23 @@ double relativistic_coulex_cross_section(Multipolarity mult,  // multipolarity
 	import std.math;
 	import std.complex;
 
-	double k     = deltaE/197.33;      // 1/fm
-	double gamma = 1./sqrt(1-beta^^2); // 1
-	//double xi    = k*R/gamma/beta;     // 1
+immutable real c    = 299.792458; // speed of light     [fm/zs]
+immutable real ahc  = 1.43996442; // alpha*hbar*c(=e^2) [MeV*fm]
+immutable real hbar = 0.65821195; // hbar               [MeV*zs]
+immutable real hc   = 197.32698;  // hbar*c             [MeV*fm]
+immutable real u    = 931.49406;  // atomic mass unit   [MeV/c^2]
+immutable real mp   = 938.272013; // proton  mass       [MeV/c^2]
+immutable real mn   = 939.565346; // neutron mass       [MeV/c^2]
+immutable real me   = 0.51099893; // electron mass      [MeV/c^2]
 
-	double A0    = Ae*Af/(Ae+Af);
-	double xi    = k/gamma/beta * (R + PI/2. * Ze*Zf*(197.33/137.04)/(A0*940*gamma*beta*beta));
+
+	double k     = deltaE/hc;      // 1/fm
+	double gamma = 1./sqrt(1-beta^^2); // 1
+	double m0c2 = u*Ae*Af/(Ae+Af); // reduced mass
+	double R_mod = (R + (PI/2) * Ze*Zf*ahc/(m0c2*beta^^2*gamma)); // modified impact parameter
+	double xi    = k/gamma/beta * R_mod;
 	
-	double sigma = k^^(2*(mult.order-1)) * B * (Zf/137.04)^^2;
+	double sigma = k^^(2*(mult.order-1)) * B * (Zf*ahc/hc)^^2;
 	
 	double sum = 0;
 	foreach(mu;Orientation(mult)) // -order,-order+1,...,order-1,order
