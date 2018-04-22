@@ -259,7 +259,7 @@ immutable real me   = 0.51099893; // electron mass      [MeV/c^2]
 	double sum = 0;
 	foreach(mu;Orientation(mult)) // -order,-order+1,...,order-1,order
 	{
-		double G = abs(G(mult,mu,1/beta))^^2;
+		double G = G(mult,mu,1.0/beta).sqAbs;
 		double g = g_mu_xi(mu,xi);
 		//writefln("%s   %s   %s", mu, GE2, g);
 		sum += G*g;
@@ -483,7 +483,7 @@ double relativisticCoulexAngularDistributionW(double theta,
 	{
 		foreach(mu;Orientation(mult))
 		{
-			double G      = abs(G(mult,mu,1/beta))^^2;
+			double G      = G(mult,mu,1/beta).sqAbs;
 			double g      = g_mu_xi(mu,xi);
 			double phase  = (-1)^^mu;
 			//writeln(2*lambda, "   ", 2*mu    , "   ", 2*lambda, "   ", -2*mu    , "   ", 2*k, "   ", 0    );
@@ -561,7 +561,7 @@ unittest
 			double sum = 0;
 			foreach(m;-l..l+1)
 			{
-				sum += Ylm_2(l,m, 1);
+				sum += Ylm_2(l,m, 1.0);
 			}
 			assert(approxEqual((2*l+1)/(4*PI), sum));
 		}
