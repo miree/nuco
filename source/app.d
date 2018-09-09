@@ -288,8 +288,8 @@ void main(string[] args)
 			foreach(idx,amp;params_p.amplitudes) 
 			{
 				//writeln("sum_level[", amp.level_index, "] = ", sum_level[amp.level_index]);
-				sum_level[n][amp.level_index] += abs(amp.a)^^2;
-				if (idx > 0) sum += abs(amp.a)^^2;
+				sum_level[n][amp.level_index] += amp.a.sqAbs;
+				if (idx > 0) sum += amp.a.sqAbs;
 			}
 			bs[n] = b;
 
@@ -330,7 +330,7 @@ void main(string[] args)
 							Multipolarity(Multipolarity.Mode.E, params.matrix_elements[0].lambda),
 							0,0,
 							cast(int)params.levels[1].L, M,
-							abs(params.matrix_elements[0].ME), // e*fm^lambda
+							sqrt(params.matrix_elements[0].ME.sqAbs), // e*fm^lambda
 							params.betap,
 							b,
 							params.levels[1].E, // MeV
@@ -338,7 +338,7 @@ void main(string[] args)
 							params.Ap,
 							params.Zt,
 							params.At);
-				AlderWintherSum += (aif.abs())^^2;
+				AlderWintherSum += aif.sqAbs;
 			}
 			f.writef("%20s %20s %20s ", AlderWintherSum, 2*PI*b*AlderWintherSum, -b*AlderWintherSum*(1./dthetalab_db));
 			f.writeln();
@@ -352,7 +352,7 @@ void main(string[] args)
 			if (i == 1) // give Alder/Winther Cross-section for the first excited state
 			{
 				double AWxsec = relativistic_coulex_cross_section(Multipolarity(Multipolarity.Mode.E, params.matrix_elements[0].lambda),  // multipolarity
-												 reducedTransitionStrength(abs(params.matrix_elements[0].ME), 2*cast(int)params.levels[0].L),            // reduced transition strength
+												 reducedTransitionStrength(sqrt(params.matrix_elements[0].ME.sqAbs), 2*cast(int)params.levels[0].L),            // reduced transition strength
 												 params.betap,         // velocity in units of c, i.e. v/c
 												 params.bp,            // impact parameter is approx. distance of closest approach
 												 params.levels[1].E,       // energy difference of initial and final level
@@ -372,7 +372,7 @@ void main(string[] args)
 		integrate.excite(&ode_excitation, gsl_odeiv2_step_rkf45, params);
 		write("xxx:");
 		write(params.Ep, " ");
-		foreach(idx,amp;params.amplitudes) write(abs(amp.a)^^2, " ");
+		foreach(idx,amp;params.amplitudes) write(amp.a.sqAbs, " ");
 		writeln();	
 	}
 
