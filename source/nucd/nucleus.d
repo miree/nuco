@@ -76,7 +76,7 @@ class NuclearData
 	
 	this(const JSONValue ncl)
 	{
-		if (ncl.type != JSON_TYPE.OBJECT)
+		if (ncl.type != JSONType.object)
 		{
 			writeln("error: toplevel json is no object");
 			return;
@@ -88,7 +88,7 @@ class NuclearData
 		if ("A" in ncl.object)       A = to!int(ncl.object["A"].integer);
 		if ("mass" in ncl.object)       A = to!int(ncl.object["mass"].floating);
 
-		if ("states" in ncl.object && ncl.object["states"].type == JSON_TYPE.ARRAY)
+		if ("states" in ncl.object && ncl.object["states"].type == JSONType.array)
 		{
 			foreach(state; ncl.object["states"].array.map!(a => a.object))
 			{ // state is of type JSONValue[string]
@@ -127,16 +127,16 @@ class NuclearData
 				}
 				if ("E"  in state) // get energy
 				{
-					if (state["E"].type == JSON_TYPE.FLOAT)
+					if (state["E"].type == JSONType.float_)
 						states[$-1].E = state["E"].floating;
-					if (state["E"].type == JSON_TYPE.INTEGER)
+					if (state["E"].type == JSONType.integer)
 						states[$-1].E = state["E"].integer;
 				}
 				if ("T1/2"  in state) // get half-life
 				{
-					if (state["T1/2"].type == JSON_TYPE.FLOAT)
+					if (state["T1/2"].type == JSONType.float_)
 						states[$-1].tau = state["T1/2"].floating/log(2);
-					if (state["T1/2"].type == JSON_TYPE.INTEGER)
+					if (state["T1/2"].type == JSONType.integer)
 						states[$-1].tau = state["T1/2"].integer/log(2);
 				}
 				// get decays
@@ -168,10 +168,10 @@ class NuclearData
 							auto intensityJSON = decay["intensity"];
 							switch(intensityJSON.type)
 							{
-								case JSON_TYPE.INTEGER:
+								case JSONType.integer:
 									states[$-1].decays[$-1].relativeIntensity = intensityJSON.integer;
 								break;
-								case JSON_TYPE.FLOAT:
+								case JSONType.float_:
 									states[$-1].decays[$-1].relativeIntensity = intensityJSON.floating;
 								break;
 								default:

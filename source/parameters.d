@@ -185,7 +185,7 @@ struct Parameters
 	}
 	void integrate_trajectory()
 	{
-		final switch(method)
+		switch(method)
 		{
 			case IntegrationMethod.classical:
 				integrate.integrate(&ode_classsical, gsl_odeiv2_step_rkf45, this);
@@ -193,7 +193,7 @@ struct Parameters
 			case IntegrationMethod.magnetic:
 				integrate.integrate(&ode_magnetic, gsl_odeiv2_step_rkf45, this);
 			break;
-			case IntegrationMethod.relativistic:
+			default:
 				integrate.integrate(&ode_relativistic, gsl_odeiv2_step_rkf45, this);
 			break;
 		}
