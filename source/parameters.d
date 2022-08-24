@@ -328,7 +328,7 @@ struct History // This could also be called "Trajectory", but since it is used t
 			assert(t > points[$-1].t);
 		}
 	}
-	body
+	do
 	{
 		import nucd.kinematics;
 		// add position, velocity, acceleration, tau, first and second derivative dtaudt, d2taudt2
@@ -347,7 +347,7 @@ struct History // This could also be called "Trajectory", but since it is used t
 	{
 		assert(points.length > 0);
 	}
-	body
+	do
 	{
 		if (t <= points[0].t) // project into the past (before the first recorded point)
 		{

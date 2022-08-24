@@ -21,4 +21,9 @@ Relativistic two-body open orbit simulation. Calculates electrical nuclear Coulo
 	# or
 	bash examples/xsec_Kr_on_Au_02.sh
 
+If Gnuplot ist installed plots like the following are created:
+## 1st trajectory example
+![image](./examples/trajectory_Kr_on_Au_01.png "Result")
 
+## 2nd cross section example
+![image](./examples/xsec_Kr_on_Au_02.png "Result")
